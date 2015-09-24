@@ -21,6 +21,7 @@
 
 local Astar = require "engine.Astar"
 local Dialog = require "engine.ui.Dialog"
+local Map = require "engine.Map"
 local PlayerRest = require "engine.interface.PlayerRest"
 local PlayerExplore = require "mod.class.interface.PlayerExplore"
 
@@ -79,11 +80,6 @@ local function player_ai_rest() end
 
 local function player_ai_after_rest()
     game.log("#GREEN#Start of Player AI After Rest! #GOLD#Player AI is: %s", _M.ai_active and "#LIGHT_GREEN#enabled" or "#LIGHT_RED#disabled")
-    --if game.player.resting then
-    --    if game.player:restCheck() then
-    --        return game.player:restInit(nil,nil,nil,nil,player_ai_after_rest)
-    --    end
-    --end
     
 --TODO rework so we don't check for hostiles twice
     local ret, msg = checkLowHealth()
@@ -93,7 +89,9 @@ local function player_ai_after_rest()
     if target == nil
     then
         game.log("#RED#No Target! Auto-Exploring!")
-        if game.player:autoExplore() then -- and on stairs
+        --If we stopped autoexploring on a level exit, stop the AI
+        local terrain = game.level.map(game.player.x, game.player.y, Map.TERRAIN)
+        if game.player:autoExplore() and terrain.change_level then
             aiStop()
         end
     else
