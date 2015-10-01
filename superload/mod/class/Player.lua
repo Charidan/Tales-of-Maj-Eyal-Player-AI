@@ -97,11 +97,40 @@ local function getNearestHostile()
     return target
 end
 
+local function getAvailableTalents()
+    local avail = {}
+    -- TODO maybe check range for each enemy in range? player has unknowable target!
+	-- local tx, ty = game.player:aiSeeTargetPos(game.player.ai_target.actor)
+	--local target_dist = core.fov.distance(game.player.x, game.player.y, tx, ty)
+	for tid, _ in pairs(game.player.talents) do
+		local t = game.player:getTalentFromId(tid)
+		-- For dumb AI assume we need range and LOS
+		-- No special check for bolts, etc.
+		local total_range = (game.player:getTalentRange(t) or 0) + (game.player:getTalentRadius(t) or 0)
+		local tg = {type=util.getval(t.direct_hit, game.player, t) and "hit" or "bolt", range=total_range}
+		if t.mode == "activated" and not t.no_npc_use and not t.no_dumb_use and
+		   not game.player:isTalentCoolingDown(t) and game.player:preUseTalent(t, true, true) --and
+		   --(not game.player:getTalentRequiresTarget(t) or game.player:canProject(tg, tx, ty))
+		   then
+			avail[#avail+1] = tid
+			print(game.player.name, game.player.uid, "dumb ai talents can use", t.name, tid)
+		elseif t.mode == "sustained" and not t.no_npc_use and not t.no_dumb_use and not game.player:isTalentCoolingDown(t) and
+		   not game.player:isTalentActive(t.id) and
+		   game.player:preUseTalent(t, true, true)
+		   then
+			avail[#avail+1] = tid
+			print(game.player.name, game.player.uid, "dumb ai talents can activate", t.name, tid)
+		end
+	end
+	return avail
+end
+
 local function checkLowHealth()
     local enemy = getNearestHostile()
     if enemy ~= nil and game.player.life < game.player.max_life/4 then
         local dir = game.level.map:compassDirection(enemy.x - game.player.x, enemy.y - game.player.y)
-		return true, ("#RED#AI cancelled for low health while hostile spotted to the %s (%s%s)"):format(dir or "???", enemy.name, game.level.map:isOnScreen(enemy.x, enemy.y) and "" or " - offscreen")
+        local name = enemy.name
+		return true, ("#RED#AI cancelled for low health while hostile spotted to the %s (%s%s)"):format(dir or "???", name, game.level.map:isOnScreen(enemy.x, enemy.y) and "" or " - offscreen")
     end
 end
 
@@ -111,6 +140,19 @@ local function player_ai_after_rest()
 --TODO rework so we don't check for hostiles twice
     local ret, msg = checkLowHealth()
     if ret then return game.log(msg) end
+    
+    -- activate sustained talents
+    local talents = getAvailableTalents()
+    if talents == nil or #talents == 0 then game.log("#RED#no talents") end
+    for i,tid in pairs(talents) do
+        game.log("i = "..tostring(i).."    tid = "..tostring(tid))
+        local t = game.player:getTalentFromId(tid)
+        game.log("t = "..tostring(t))
+        if tid == nil then game.log("#RED#tid is nil?") end
+        if t.mode == "sustained" then
+            game.player:useTalent(tid)
+        end
+    end
         
     local target = getNearestHostile()
     if target == nil
