@@ -163,34 +163,25 @@ local function player_ai_after_rest()
             aiStop("#LIGHT_RED#AI stopping: level change found")
         end
     else
-        local move_success = false
-        
         local a = Astar.new(game.level.map, game.player)
         local path = a:calc(game.player.x, game.player.y, target.x, target.y)
+        local dir = getDirNum(game.player, target)
+        local moved = false
         
         if not path then
             --game.log("#RED#Path not found, trying beeline")
-            local dir = getDirNum(game.player, target)
-            move_success = game.player:attackOrMoveDir(dir)
+            moved = game.player:attackOrMoveDir(dir)
         else
             --game.log("#GREEN#move via path")
             local moved = game.player:move(path[1].x, path[1].y)
             if not moved then
                 --game.log("#RED#Normal movement failed, trying beeline")
-                local enemies = spotHostiles(game.player)
-                for index,enemy in pairs(enemies) do
-                    local dir = getDirNum(game.player, target)
-                    if game.player:attackOrMoveDir(dir) then
-                         move_success = true
-                        break
-                    end
-                end
-            else
-                move_success = true
+                moved = game.player:attackOrMoveDir(dir)
             end
         end
-        if not move_success then
+        if not moved then
             game.log("#GOLD#Waiting a turn!")
+            -- dir 5 is wait
             game.player:attackOrMoveDir(5)
         end
     end
