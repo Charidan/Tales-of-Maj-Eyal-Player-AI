@@ -27,10 +27,18 @@ local PlayerExplore = require "mod.class.interface.PlayerExplore"
 
 local _M = loadPrevious(...)
 
+local PAI_STATE_REST = 0
+local PAI_STATE_EXPLORE = 1
+local PAI_STATE_HUNT = 2
+local PAI_STATE_FIGHT = 3
+
+-- TODO ai_state likely needs to be part of _M
+local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
+
 local function aiStop(msg)
     _M.ai_active = false
-    _M.player_ai_resting = false
+    ai_state = PAI_STATE_REST
     aiTurnCount = 0
     if msg then game.log(msg) else game.log("#LIGHT_RED#AI Stopping!") end
 end
@@ -97,11 +105,17 @@ local function getNearestHostile()
     return target
 end
 
-local function getAvailableTalents()
+-- TODO does this function tell us we can target an actor if they're blocked from effect but not sight?
+-- like when someone is standing in front of the target actor (with a non-piercing attack)?
+local function getAvailableTalents(target)
     local avail = {}
-    -- TODO maybe check range for each enemy in range? player has unknowable target!
-	-- local tx, ty = game.player:aiSeeTargetPos(game.player.ai_target.actor)
-	--local target_dist = core.fov.distance(game.player.x, game.player.y, tx, ty)
+    local tx = nil
+    local ty = nil
+    local target_dist = nil
+    if target ~= nil then
+	    tx, ty = game.player:aiSeeTargetPos(game.player.ai_target.actor)
+	    target_dist = core.fov.distance(game.player.x, game.player.y, tx, ty)
+	end
 	for tid, _ in pairs(game.player.talents) do
 		local t = game.player:getTalentFromId(tid)
 		-- For dumb AI assume we need range and LOS
@@ -109,8 +123,8 @@ local function getAvailableTalents()
 		local total_range = (game.player:getTalentRange(t) or 0) + (game.player:getTalentRadius(t) or 0)
 		local tg = {type=util.getval(t.direct_hit, game.player, t) and "hit" or "bolt", range=total_range}
 		if t.mode == "activated" and not t.no_npc_use and not t.no_dumb_use and
-		   not game.player:isTalentCoolingDown(t) and game.player:preUseTalent(t, true, true) --and
-		   --(not game.player:getTalentRequiresTarget(t) or game.player:canProject(tg, tx, ty))
+		   not game.player:isTalentCoolingDown(t) and game.player:preUseTalent(t, true, true) and
+		   (target ~= nil and not game.player:getTalentRequiresTarget(t) or game.player:canProject(tg, tx, ty))
 		   then
 			avail[#avail+1] = tid
 			print(game.player.name, game.player.uid, "dumb ai talents can use", t.name, tid)
@@ -125,82 +139,171 @@ local function getAvailableTalents()
 	return avail
 end
 
-local function checkLowHealth()
-    local enemy = getNearestHostile()
-    if enemy ~= nil and game.player.life < game.player.max_life/4 then
-        local dir = game.level.map:compassDirection(enemy.x - game.player.x, enemy.y - game.player.y)
-        local name = enemy.name
-		return true, ("#RED#AI cancelled for low health while hostile spotted to the %s (%s%s)"):format(dir or "???", name, game.level.map:isOnScreen(enemy.x, enemy.y) and "" or " - offscreen")
+local function lowHealth(enemy)
+    -- TODO make threshold configurable
+    if game.player.life < game.player.max_life/4 then
+        if enemy ~= nil then
+            local dir = game.level.map:compassDirection(enemy.x - game.player.x, enemy.y - game.player.y)
+            local name = enemy.name
+		    return true, ("#RED#AI cancelled for low health while hostile spotted to the %s (%s%s)"):format(dir or "???", name, game.level.map:isOnScreen(enemy.x, enemy.y) and "" or " - offscreen")
+		else
+		    return true, "#RED#AI cancelled for low health"
+		end
     end
 end
 
-local function player_ai_rest() end
+--local function player_ai_rest() end
+--
+--local function player_ai_after_rest() 
+----TODO rework so we don't check for hostiles twice
+--    local ret, msg = checkLowHealth()
+--    if ret then return game.log(msg) end
+--    
+--    -- activate sustained talents
+--    local talents = getAvailableTalents()
+--    if talents == nil or #talents == 0 then game.log("#RED#no talents") end
+--    for i,tid in pairs(talents) do
+--        game.log("i = "..tostring(i).."    tid = "..tostring(tid))
+--        local t = game.player:getTalentFromId(tid)
+--        game.log("t = "..tostring(t))
+--        if tid == nil then game.log("#RED#tid is nil?") end
+--        if t.mode == "sustained" then
+--            game.player:useTalent(tid)
+--        end
+--    end
+--        
+--    local target = getNearestHostile()
+--    if target == nil
+--    then
+--        --If we stopped autoexploring on a level exit, stop the AI
+--        local terrain = game.level.map(game.player.x, game.player.y, Map.TERRAIN)
+--        if game.player:autoExplore() and terrain.change_level then
+--            aiStop("#LIGHT_RED#AI stopping: level change found")
+--        end
+--    else
+--        local a = Astar.new(game.level.map, game.player)
+--        local path = a:calc(game.player.x, game.player.y, target.x, target.y)
+--        local dir = getDirNum(game.player, target)
+--        local moved = false
+--        
+--        if not path then
+--            --game.log("#RED#Path not found, trying beeline")
+--            moved = game.player:attackOrMoveDir(dir)
+--        else
+--            --game.log("#GREEN#move via path")
+--            local moved = game.player:move(path[1].x, path[1].y)
+--            if not moved then
+--                --game.log("#RED#Normal movement failed, trying beeline")
+--                moved = game.player:attackOrMoveDir(dir)
+--            end
+--        end
+--        if not moved then
+--            game.log("#GOLD#Waiting a turn!")
+--            -- dir 5 is wait
+--            game.player:attackOrMoveDir(5)
+--        end
+--    end
+--end
+--
+--local function player_ai_rest()
+--    _M.player_ai_resting = true
+--    game.player:restInit(nil,nil,nil,nil,player_ai_after_rest)
+--end
+--
+--local function player_ai_act()
+--    local ret, msg = checkLowHealth()
+--    if ret then 
+--        aiStop(msg)
+--        return
+--    end
+--    
+--    _M.player_ai_resting = true
+--    game.player:restInit(nil,nil,nil,nil,player_ai_rest)
+--end
 
-local function player_ai_after_rest() 
---TODO rework so we don't check for hostiles twice
-    local ret, msg = checkLowHealth()
-    if ret then return game.log(msg) end
-    
-    -- activate sustained talents
+-- TODO add configurability, at least for Meditation
+-- TODO remove test prints
+local function activateSustained()
     local talents = getAvailableTalents()
+    
     if talents == nil or #talents == 0 then game.log("#RED#no talents") end
+    
     for i,tid in pairs(talents) do
+        
         game.log("i = "..tostring(i).."    tid = "..tostring(tid))
+        
         local t = game.player:getTalentFromId(tid)
         game.log("t = "..tostring(t))
+        
         if tid == nil then game.log("#RED#tid is nil?") end
+        
         if t.mode == "sustained" then
             game.player:useTalent(tid)
         end
     end
-        
-    local target = getNearestHostile()
-    if target == nil
-    then
-        --If we stopped autoexploring on a level exit, stop the AI
-        local terrain = game.level.map(game.player.x, game.player.y, Map.TERRAIN)
-        if game.player:autoExplore() and terrain.change_level then
-            aiStop("#LIGHT_RED#AI stopping: level change found")
-        end
-    else
-        local a = Astar.new(game.level.map, game.player)
-        local path = a:calc(game.player.x, game.player.y, target.x, target.y)
-        local dir = getDirNum(game.player, target)
-        local moved = false
-        
-        if not path then
-            --game.log("#RED#Path not found, trying beeline")
-            moved = game.player:attackOrMoveDir(dir)
-        else
-            --game.log("#GREEN#move via path")
-            local moved = game.player:move(path[1].x, path[1].y)
-            if not moved then
-                --game.log("#RED#Normal movement failed, trying beeline")
-                moved = game.player:attackOrMoveDir(dir)
-            end
-        end
-        if not moved then
-            game.log("#GOLD#Waiting a turn!")
-            -- dir 5 is wait
-            game.player:attackOrMoveDir(5)
-        end
-    end
 end
 
-local function player_ai_rest()
-    _M.player_ai_resting = true
-    game.player:restInit(nil,nil,nil,nil,player_ai_after_rest)
+local function validateRest(turns)
+    if turns == 0 then
+        -- TODO make sure this doesn't override damage taken
+        ai_state == PAI_STATE_EXPLORE
+    end
+    -- else do nothing
 end
 
 local function player_ai_act()
-    local ret, msg = checkLowHealth()
-    if ret then 
-        aiStop(msg)
-        return
+    local hostiles = spotHostiles(game.player, true)
+    if #hostiles then
+        local low, msg = lowHealth(hostiles[0])
+        if low then return aiStop(msg) end
+    else
+        ai_state = PAI_STATE_FIGHT
     end
     
-    _M.player_ai_resting = true
-    game.player:restInit(nil,nil,nil,nil,player_ai_rest)
+    activateSustained()
+    
+    if ai_state == PAI_STATE_REST then
+    
+        return game.player.restInit(validateRest)
+    elseif ai_state == PAI_STATE_EXPLORE then
+    
+        return
+        
+    elseif ai_state == PAI_STATE_HUNT then
+        -- TODO figure out how to hook takeHit() to get here
+        -- then figure out if we can target the damage source
+        -- or we have to randomwalk/flee
+        
+        -- for now:
+        ai_state = PAI_STATE_EXPLORE
+        return
+    
+    elseif ai_state == PAI_STATE_FIGHT then
+    
+        local targets = {}
+        for index, enemy in pairs(hostiles) do
+            -- attacking is a talent, so we shouldn't need a range check
+            if getAvailableTalents(enemy) then
+                --enemy in range! Add them to possible target queue
+                table.insert(targets, enemy)
+            end
+        end
+        
+        local low_mark = MAX_INT
+        local target = nil
+        for index, enemy in pairs(hostiles) do
+            if enemy.life < low_mark then
+                low_mark = enemy.life
+                target = enemy
+            end
+        end
+        
+        -- the AI is dumb and doesn't understand how powers work, so pick one at random!
+        local talents = getAvailableTalents(enemy)
+		local tid = talents[rng.range(1, #talents)]
+        game.player:setTarget(enemy)
+		return game.player:useTalent(tid)
+    end
 end
 
 function _M:player_ai_start()
@@ -211,6 +314,7 @@ function _M:player_ai_start()
         return aiStop("#RED#Player AI cannot be used in the wilderness!")
     end
     _M.ai_active = true
+    -- NOTE: Uncommenting this will probably prevent resting due to having a dialog up (possibly avoidable using a file-local variable?)
     --dialog = Dialog:simplePopup("AI active!", "The AI is clearing the floor for you. Press any key to regain control...", function()
     --    aiStop()
     --end, false, true)
@@ -233,7 +337,6 @@ function _M:act()
     if aiTurnCount > 1000 then
         aiStop("#LIGHT_RED#AI Disabled. AI acted for 1000 turns. Did it get stuck?")
     end
-    --if (not did_ai) and (not game.player.player_ai_resting) and (not game.player.running) and (not game.player.resting) then aiStop() end
     return ret
 end
 
