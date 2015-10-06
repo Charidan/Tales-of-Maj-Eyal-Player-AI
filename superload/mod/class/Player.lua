@@ -19,6 +19,19 @@
 
 -- Modifications by Charidan
 
+
+-- THIS IS A HACK TO MAKE A MAX_INT
+local MAX_INT = 2
+while true do
+    local nextstep = MAX_INT*2
+    if (math.floor(nextstep) == nextstep) and (nextstep-1 ~= nextstep) then
+        MAX_INT = nextstep
+    else
+        break
+    end
+end
+-- END HACK
+
 local Astar = require "engine.Astar"
 local Dialog = require "engine.ui.Dialog"
 local Map = require "engine.Map"
@@ -27,6 +40,7 @@ local PlayerExplore = require "mod.class.interface.PlayerExplore"
 
 local _M = loadPrevious(...)
 
+-- TODO these probably need to be global
 local PAI_STATE_REST = 0
 local PAI_STATE_EXPLORE = 1
 local PAI_STATE_HUNT = 2
@@ -35,6 +49,19 @@ local PAI_STATE_FIGHT = 3
 -- TODO ai_state likely needs to be part of _M
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
+
+local function aiStateString()
+    if ai_state == PAI_STATE_REST then
+        return "PAI_STATE_REST"
+    elseif ai_state == PAI_STATE_EXPLORE then
+        return "PAI_STATE_EXPLORE"
+    elseif ai_state == PAI_STATE_HUNT then
+        return "PAI_STATE_HUNT"
+    elseif ai_state == PAI_STATE_FIGHT then
+        return "PAI_STATE_FIGHT"
+    end
+    return "Unknown State"
+end
 
 local function aiStop(msg)
     _M.ai_active = false
@@ -113,7 +140,8 @@ local function getAvailableTalents(target)
     local ty = nil
     local target_dist = nil
     if target ~= nil then
-	    tx, ty = game.player:aiSeeTargetPos(game.player.ai_target.actor)
+	    tx = target.x
+	    ty = target.y
 	    target_dist = core.fov.distance(game.player.x, game.player.y, tx, ty)
 	end
 	for tid, _ in pairs(game.player.talents) do
@@ -244,29 +272,41 @@ local function activateSustained()
 end
 
 local function validateRest(turns)
-    if turns == 0 then
+    if not turns or turns == 0 then
+        game.log("#GOLD#AI Turns Rested: "..tostring(turns))
         -- TODO make sure this doesn't override damage taken
-        ai_state == PAI_STATE_EXPLORE
+--        if not getNearestHostile() then
+        ai_state = PAI_STATE_EXPLORE
+--        end
     end
     -- else do nothing
 end
 
 local function player_ai_act()
     local hostiles = spotHostiles(game.player, true)
-    if #hostiles then
+    game.log("#GREEN#Number of hostiles: "..tostring(#hostiles))
+    if #hostiles > 0 then
         local low, msg = lowHealth(hostiles[0])
         if low then return aiStop(msg) end
-    else
+        
+        game.log("#GOLD#Monster spotted! FIGHT!")
         ai_state = PAI_STATE_FIGHT
     end
     
     activateSustained()
     
+    game.log(aiStateString())
+    
     if ai_state == PAI_STATE_REST then
     
-        return game.player.restInit(validateRest)
+        return game.player:restInit(nil,nil,nil,nil,validateRest)
     elseif ai_state == PAI_STATE_EXPLORE then
-    
+        game.player:autoExplore()
+        -- NOTE: Due to execution order, this may actually be checking the start tile
+        local terrain = game.level.map(game.player.x, game.player.y, Map.TERRAIN)
+        if terrain.change_level then
+            aiStop("#GOLD#AI stopping: level change found")
+        end
         return
         
     elseif ai_state == PAI_STATE_HUNT then
@@ -281,7 +321,9 @@ local function player_ai_act()
     elseif ai_state == PAI_STATE_FIGHT then
     
         local targets = {}
+        game.log("#GOLD#HOSTILES TABLE:")
         for index, enemy in pairs(hostiles) do
+            game.log("#BLUE#index = #GREEN#"..tostring(index).." #BLUE#enemy = #GREEN#"..tostring(enemy))
             -- attacking is a talent, so we shouldn't need a range check
             if getAvailableTalents(enemy) then
                 --enemy in range! Add them to possible target queue
@@ -289,9 +331,12 @@ local function player_ai_act()
             end
         end
         
-        local low_mark = MAX_INT
+        local low_mark = MAX_INT -- remember this value is a hack from above
+        game.log("low_mark = math.maxinteger = "..tostring(low_mark))
         local target = nil
-        for index, enemy in pairs(hostiles) do
+        for index, enemy in pairs(targets) do
+            game.log("#GREEN#enemy.life = #BLUE#"..tostring(enemy.life))
+            -- TODO enemies have nil life???
             if enemy.life < low_mark then
                 low_mark = enemy.life
                 target = enemy
@@ -299,10 +344,37 @@ local function player_ai_act()
         end
         
         -- the AI is dumb and doesn't understand how powers work, so pick one at random!
-        local talents = getAvailableTalents(enemy)
-		local tid = talents[rng.range(1, #talents)]
-        game.player:setTarget(enemy)
-		return game.player:useTalent(tid)
+        if target ~= nil then
+            local talents = getAvailableTalents(target)
+	    	local tid = talents[rng.range(1, #talents)]
+            game.player:setTarget(enemy)
+    		game.player:useTalent(tid)
+    		return
+    	end
+		
+		-- no legal target! let's get closer
+		local a = Astar.new(game.level.map, game.player)
+        local path = a:calc(game.player.x, game.player.y, target.x, target.y)
+        local dir = getDirNum(game.player, target)
+        local moved = false
+        
+        if not path then
+            --game.log("#RED#Path not found, trying beeline")
+            moved = game.player:attackOrMoveDir(dir)
+        else
+            --game.log("#GREEN#move via path")
+            local moved = game.player:move(path[1].x, path[1].y)
+            if not moved then
+                --game.log("#RED#Normal movement failed, trying beeline")
+                moved = game.player:attackOrMoveDir(dir)
+            end
+        end
+        if not moved then
+            game.log("#GOLD#Waiting a turn!")
+            -- Maybe we're pinned and can't move?
+            -- dir 5 is wait
+            game.player:attackOrMoveDir(5)
+        end
     end
 end
 
