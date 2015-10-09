@@ -250,7 +250,6 @@ local function player_ai_act()
         return player_ai_act()
     
     elseif ai_state == PAI_STATE_FIGHT then
-        game.log("#LIGHT_GREEN#Finding targets!")
         local targets = {}
         for index, enemy in pairs(hostiles) do
             -- attacking is a talent, so we shouldn't need a range check
@@ -262,34 +261,27 @@ local function player_ai_act()
         
         local target = getLowestHealthEnemy(targets)
         
-        game.log("#LIGHT_GREEN#Choosing Talent!")
         -- the AI is dumb and doesn't understand how powers work, so pick one at random!
         if target ~= nil then
             local talents = getAvailableTalents(target)
 	    	local tid = talents[rng.range(1, #talents)]
-	    	if tid == nil then
-	    	    game.log("#GOLD#BUG: Attempted to cast talent "..tostring(tid).." at enemy "..tostring(target.name).."but the talent was nil!")
-	    	    game.log("#RED#Talents legal for target:")
-	    	    for ind,tid in pairs(talents) do
-                    game.log("#BLUE#key = #GREEN#"..tostring(ind).." #BLUE#value(tid) = #GREEN#"..tostring(tid))
-                end
-	    	else
-	    	    game.log("#LIGHT_GREEN#Casting talent!")
+	    	if tid ~= nil then
                 game.player:setTarget(target.actor)
                 game.target.forced = { target.actor.x, target.actor.y, target.actor }
     		    game.player:useTalent(tid)
     		    game.target.forced = nil
+    		    if game.player:enoughEnergy() then
+    		        player_ai_act()
+    		    end
     		    return
     		end
     	end
 		
-		game.log("#LIGHT_GREEN#No talent:")
 		-- no legal target! let's get closer
 		target = getLowestHealthEnemy(hostiles)
 		if target == nil then
 		    -- no enemies left in sight! fight's over
 		    -- TODO OR WE'RE BLIND!!!!!!! this edge case will likely resolve itself once HUNT works.
-		    game.log("#LIGHT_GREEN#No hostiles, resting!")
 		    ai_state = PAI_STATE_REST
 		    return player_ai_act()
 		end
@@ -299,7 +291,6 @@ local function player_ai_act()
         local dir = getDirNum(game.player, target)
         local moved = false
         
-        game.log("#LIGHT_GREEN#Moving closer!")
         if not path then
             --game.log("#RED#Path not found, trying beeline")
             moved = game.player:attackOrMoveDir(dir)
