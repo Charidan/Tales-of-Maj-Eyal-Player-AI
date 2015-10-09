@@ -193,7 +193,7 @@ end
 
 local function validateRest(turns)
     if not turns or turns == 0 then
-        game.log("#GOLD#AI Turns Rested: "..tostring(turns))
+        --game.log("#GOLD#AI Turns Rested: "..tostring(turns))
         -- TODO make sure this doesn't override damage taken
         ai_state = PAI_STATE_EXPLORE
         game.player.resting = nil
