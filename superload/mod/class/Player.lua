@@ -32,6 +32,12 @@ while true do
 end
 -- END HACK
 
+-- Absolute value
+local function abs(n)
+    if n < 0 then return -n end
+    return n
+end
+
 local Astar = require "engine.Astar"
 local Dialog = require "engine.ui.Dialog"
 local Map = require "engine.Map"
@@ -117,6 +123,36 @@ local function spotHostiles(self, actors_only)
 		end, nil)
 	end
 	return seen
+end
+
+local function getPathToAir(self)
+    local seen = {}
+	if not self.x then return seen end
+
+	-- Check for visible monsters, only see LOS actors, so telepathy wont prevent resting
+	core.fov.calc_circle(self.x, self.y, game.level.map.w, game.level.map.h, self.sight or 10, function(_, x, y) return game.level.map:opaque(x, y) end, function(_, x, y)
+		local terrain = game.level.map(x, y, game.level.map.TERRAIN)
+		if not terrain.air_level or terrain.air_level > 0 then
+		    seen[#seen+1] = {x=x, y=y, terrain=terrain}
+		end
+	end, nil)
+	
+	local min_dist = MAX_INT
+	local close_coord = nil
+	for i,coord in pairs(seen) do
+	    local dist = abs(coord.x - self.x) + abs(coord.y - self.y)
+	    if dist < min_dist then
+	        min_dist = dist
+	        close_coord = coord
+	    end
+	end
+	
+	if close_coord ~= nil then
+    	local a = Astar.new(game.level.map, self)
+        local path = a:calc(self.x, self.y, close_coord.x, close_coord.y)
+	    return path
+	end
+	return nil
 end
 
 local function getNearestHostile()
@@ -227,11 +263,33 @@ local function player_ai_act()
     activateSustained()
     
     game.log(aiStateString())
-    
+        
     if ai_state == PAI_STATE_REST then
-    
+        local terrain = game.level.map(game.player.x, game.player.y, game.level.map.TERRAIN)
+        if terrain.air_level and terrain.air_level < 0 then
+            -- run to air
+            local path = getPathToAir(game.player)
+            if path ~= nil then
+                local moved = game.player:move(path[1].x, path[1].y)
+            end
+            
+            if not moved then
+                -- compass charge in the hopes of finding air
+                local dir = 1
+                local moved = false
+                while dir < 9  and not moved do
+                    moved = game.player:attackOrMoveDir(dir)
+                    dir = dir+1
+                    if dir == 5 then dir = 6 end
+                end
+            end
+        end
         return game.player:restInit(nil,nil,nil,nil,validateRest)
     elseif ai_state == PAI_STATE_EXPLORE then
+        if game.player.air < 75 then
+            ai_state = PAI_STATE_REST
+            return player_ai_act()
+        end
         game.player:autoExplore()
         -- NOTE: Due to execution order, this may actually be checking the start tile
         local terrain = game.level.map(game.player.x, game.player.y, Map.TERRAIN)
