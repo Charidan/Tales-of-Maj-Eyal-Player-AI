@@ -274,14 +274,7 @@ local function player_ai_act()
             end
             
             if not moved then
-                -- compass charge in the hopes of finding air
-                local dir = 1
-                local moved = false
-                while dir < 9  and not moved do
-                    moved = game.player:attackOrMoveDir(dir)
-                    dir = dir+1
-                    if dir == 5 then dir = 6 end
-                end
+                aiStop("#RED#AI stopped: Suffocating, no air in sight!")
             end
         end
         return game.player:restInit(nil,nil,nil,nil,validateRest)
