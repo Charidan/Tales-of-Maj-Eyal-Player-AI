@@ -274,7 +274,7 @@ local function player_ai_act()
             end
             
             if not moved then
-                aiStop("#RED#AI stopped: Suffocating, no air in sight!")
+                return aiStop("#RED#AI stopped: Suffocating, no air in sight!")
             end
         end
         return game.player:restInit(nil,nil,nil,nil,validateRest)
