@@ -37,22 +37,20 @@ Note for Developers: This addon superwrites Player:act(), so if your addon also 
 CURRENT FEATURES:
  - Rests!
  - Autoexplores!
- - Uses talents! (No exceptions yet for talents like Meditation or Phase Door to use them intelligently)
+ - Uses talents randomly! (No exceptions yet for talents like Meditation or Phase Door to use them intelligently)
  - Attacks enemies!
 
 CURRENT BUGS:
  - The AI assumes it is safe when attacked from unseen enemies, including when it is blinded in combat
- - The AI sometimes suffocates itself
  - The AI sometimes falls through to its "wait a turn" case when it doesn't seem necessary
 
-v1.2 PATCH NOTES:
- - Complete backend rewrite of the action and decision code
- - Addition of AI states so it stops trying to rest and autoexplore in combat
- - Implemented Talents
+v1.3 PATCH NOTES:
+ - The AI now responds to suffocation
+ - If air is less than 75, it seeks tiles with air
+ - If it can't see air and air is less than 75, it exits with a suffocation warning
  
 Stuff I want in the next version:
  - A "hunting" AI state to react to damage taken while out of combat
- - This should fix the suffocation issue, and let it respond to unseen attackers
 ]]
 tags = { 'keybind', 'options', 'playerai' }
 hooks = true
