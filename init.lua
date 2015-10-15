@@ -42,15 +42,16 @@ CURRENT FEATURES:
 
 CURRENT BUGS:
  - The AI assumes it is safe when attacked from unseen enemies, including when it is blinded in combat
- - Some talents like Rush can cause infinite loops in certain circumstances (for Rush, having sight on an enemy behind blocking terrain)
  - The AI sometimes falls through to its "wait a turn" case when it doesn't seem necessary
 
-v1.4 PATCH NOTES:
- - AI will no longer attempt to cast 0% of a turn talents or talents that fail twice in a turn
- - This fixes some infinite loops with talents like Cauterize Spirit with 0 cast time and 0 cooldown.
- - Talents don't universally "fail" properly in the code, so Rush can still cause infinite loops in bad terrain
+v1.5 PATCH NOTES:
+ - Updated the cast tracking system to check the cooldowns and energy (time) cost of talents
+ - - If a talent with a cooldown fails to go on cooldown, it is assumed the talent cannot be used
+ - - If a talent with an energy cost fails to expend energy, it is assumed the talent cannot be used
+ - - If a talent has no cooldown and no energy cost, it is limited to a maximum number of uses per turn, currently 5
+ - Fixed a bug with "waiting" where the AI called the wrong function to wait and ended up hanging.
  
-Stuff I want in the next version:
+Stuff I want implemented soon:
  - A "hunting" AI state to react to damage taken while out of combat
 ]]
 tags = { 'keybind', 'options', 'playerai' }

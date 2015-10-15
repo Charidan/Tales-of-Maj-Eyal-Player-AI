@@ -56,6 +56,7 @@ local PAI_STATE_FIGHT = 3
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
 
+local MAX_TALENT_PER_TURN = 5
 _M.AI_talentused = {}
 
 local function aiStateString()
@@ -205,12 +206,28 @@ local function getAvailableTalents(target)
 	return avail
 end
 
+local function markTalentUsed(t, energy_precast)
+    if t.cooldown then
+        if game.player:isTalentCoolingDown(t) then
+            game.player.AI_talentused[t.id] = MAX_TALENT_PER_TURN + 1
+        end
+    elseif t.no_energy then
+        if not game.player.AI_talentused[t.id] then
+            game.player.AI_talentused[t.id] = 1
+        else
+            game.player.AI_talentused[t.id] = game.player.AI_talentused[t.id] + 1
+        end
+    elseif energy_precast == game.player.energy.value then
+        game.player.AI_talentused[t.id] = MAX_TALENT_PER_TURN + 1
+    end
+end
+
 local function filterUsedTalents(t)
     local out = {}
 
     local i = 0
     for k, v in pairs(t) do
-        if game.player.AI_talentused[v] == nil then
+        if game.player.AI_talentused[v] ~= nil and game.player.AI_talentused[v] > MAX_TALENT_PER_TURN then
             out[i] = v
             i = i + 1
         end
@@ -238,8 +255,9 @@ local function activateSustained()
     for i,tid in pairs(talents) do
         local t = game.player:getTalentFromId(tid)
         if t.mode == "sustained" then
-            if t.no_energy then game.player.AI_talentused[tid] = tid end
+            local energy_precast = game.player.energy.value
             game.player:useTalent(tid)
+            markTalentUsed(t, energy_precast)
         end
     end
 end
@@ -322,7 +340,6 @@ local function player_ai_act()
         for index, enemy in pairs(hostiles) do
             -- attacking is a talent, so we don't need to add it as a choice
             if filterUsedTalents(getAvailableTalents(enemy)) then
---            if getAvailableTalents(enemy) then
                 --enemy in range! Add them to possible target queue
                 table.insert(targets, enemy)
             end
@@ -335,12 +352,11 @@ local function player_ai_act()
             local talents = getAvailableTalents(target)
             talents = filterUsedTalents(talents)
 	    	local tid = talents[rng.range(1, #talents)]
-            --game.log(tostring(tid))
 	    	if tid ~= nil then
-                if game.player:getTalentFromId(tid).no_energy then game.player.AI_talentused[tid] = tid end
+                local energy_precast = game.player.energy.value
                 game.player:setTarget(target.actor)
-    		    local used = game.player:useTalent(tid,nil,nil,nil,target.actor)
-    		    if not used then game.player.AI_talentused[tid] = tid end
+                game.player:useTalent(tid,nil,nil,nil,target.actor)
+                markTalentUsed(game.player:getTalentFromId(tid), energy_precast)
     		    if game.player:enoughEnergy() then
     		        player_ai_act()
     		    end
@@ -374,10 +390,8 @@ local function player_ai_act()
             end
         end
         if not moved then
-            game.log("#GOLD#Waiting a turn!")
             -- Maybe we're pinned and can't move?
-            -- dir 5 is wait
-            game.player:attackOrMoveDir(5)
+            game.player:useEnergy()
         end
     end
 end
