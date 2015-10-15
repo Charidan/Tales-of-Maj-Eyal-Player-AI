@@ -56,6 +56,8 @@ local PAI_STATE_FIGHT = 3
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
 
+_M.AI_talentused = {}
+
 local function aiStateString()
     if ai_state == PAI_STATE_REST then
         return "PAI_STATE_REST"
@@ -203,6 +205,20 @@ local function getAvailableTalents(target)
 	return avail
 end
 
+local function filterUsedTalents(t)
+    local out = {}
+
+    local i = 0
+    for k, v in pairs(t) do
+        if game.player.AI_talentused[v] == nil then
+            out[i] = v
+            i = i + 1
+        end
+    end
+
+    return out
+end
+
 local function lowHealth(enemy)
     -- TODO make threshold configurable
     if game.player.life < game.player.max_life/4 then
@@ -218,10 +234,11 @@ end
 
 -- TODO add configurability, at least for Meditation
 local function activateSustained()
-    local talents = getAvailableTalents()
+    local talents = filterUsedTalents(getAvailableTalents())
     for i,tid in pairs(talents) do
         local t = game.player:getTalentFromId(tid)
         if t.mode == "sustained" then
+            if t.no_energy then game.player.AI_talentused[tid] = tid end
             game.player:useTalent(tid)
         end
     end
@@ -303,8 +320,9 @@ local function player_ai_act()
     elseif ai_state == PAI_STATE_FIGHT then
         local targets = {}
         for index, enemy in pairs(hostiles) do
-            -- attacking is a talent, so we shouldn't need a range check
-            if getAvailableTalents(enemy) then
+            -- attacking is a talent, so we don't need to add it as a choice
+            if filterUsedTalents(getAvailableTalents(enemy)) then
+--            if getAvailableTalents(enemy) then
                 --enemy in range! Add them to possible target queue
                 table.insert(targets, enemy)
             end
@@ -315,12 +333,14 @@ local function player_ai_act()
         -- the AI is dumb and doesn't understand how powers work, so pick one at random!
         if target ~= nil then
             local talents = getAvailableTalents(target)
+            talents = filterUsedTalents(talents)
 	    	local tid = talents[rng.range(1, #talents)]
+            --game.log(tostring(tid))
 	    	if tid ~= nil then
+                if game.player:getTalentFromId(tid).no_energy then game.player.AI_talentused[tid] = tid end
                 game.player:setTarget(target.actor)
-                game.target.forced = { target.actor.x, target.actor.y, target.actor }
-    		    game.player:useTalent(tid)
-    		    game.target.forced = nil
+    		    local used = game.player:useTalent(tid,nil,nil,nil,target.actor)
+    		    if ~used then game.player.AI_talentused[tid] = tid end
     		    if game.player:enoughEnergy() then
     		        player_ai_act()
     		    end
@@ -388,6 +408,7 @@ function _M:act()
         end
         aiTurnCount = aiTurnCount + 1
         player_ai_act()
+        game.player.AI_talentused = {}
     end
     if aiTurnCount > 1000 then
         aiStop("#LIGHT_RED#AI Disabled. AI acted for 1000 turns. Did it get stuck?")

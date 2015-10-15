@@ -42,12 +42,13 @@ CURRENT FEATURES:
 
 CURRENT BUGS:
  - The AI assumes it is safe when attacked from unseen enemies, including when it is blinded in combat
+ - Some talents like Rush can cause infinite loops in certain circumstances (for Rush, having sight on an enemy behind blocking terrain)
  - The AI sometimes falls through to its "wait a turn" case when it doesn't seem necessary
 
-v1.3 PATCH NOTES:
- - The AI now responds to suffocation
- - If air is less than 75, it seeks tiles with air
- - If it can't see air and air is less than 75, it exits with a suffocation warning
+v1.4 PATCH NOTES:
+ - AI will no longer attempt to cast 0% of a turn talents or talents that fail twice in a turn
+ - This fixes some infinite loops with talents like Cauterize Spirit with 0 cast time and 0 cooldown.
+ - Talents don't universally "fail" properly in the code, so Rush can still cause infinite loops in bad terrain
  
 Stuff I want in the next version:
  - A "hunting" AI state to react to damage taken while out of combat
