@@ -340,7 +340,7 @@ local function player_ai_act()
                 if game.player:getTalentFromId(tid).no_energy then game.player.AI_talentused[tid] = tid end
                 game.player:setTarget(target.actor)
     		    local used = game.player:useTalent(tid,nil,nil,nil,target.actor)
-    		    if ~used then game.player.AI_talentused[tid] = tid end
+    		    if not used then game.player.AI_talentused[tid] = tid end
     		    if game.player:enoughEnergy() then
     		        player_ai_act()
     		    end
