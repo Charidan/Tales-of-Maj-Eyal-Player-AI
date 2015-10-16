@@ -56,8 +56,7 @@ local PAI_STATE_FIGHT = 3
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
 
-local MAX_TALENT_PER_TURN = 5
-_M.AI_talentused = {}
+_M.AI_talentfailed = {}
 
 local function aiStateString()
     if ai_state == PAI_STATE_REST then
@@ -206,34 +205,25 @@ local function getAvailableTalents(target)
 	return avail
 end
 
-local function markTalentUsed(t, energy_precast)
-    if t.cooldown then
-        if game.player:isTalentCoolingDown(t) then
-            game.player.AI_talentused[t.id] = MAX_TALENT_PER_TURN + 1
-        end
-    elseif t.no_energy then
-        if not game.player.AI_talentused[t.id] then
-            game.player.AI_talentused[t.id] = 1
-        else
-            game.player.AI_talentused[t.id] = game.player.AI_talentused[t.id] + 1
-        end
-    elseif energy_precast == game.player.energy.value then
-        game.player.AI_talentused[t.id] = MAX_TALENT_PER_TURN + 1
-    end
-end
-
-local function filterUsedTalents(t)
+local function filterFailedTalents(t)
     local out = {}
 
     local i = 0
     for k, v in pairs(t) do
-        if game.player.AI_talentused[v] ~= nil and game.player.AI_talentused[v] > MAX_TALENT_PER_TURN then
+        if game.player.AI_talentfailed[v] == nil then
             out[i] = v
             i = i + 1
         end
     end
 
     return out
+end
+
+local postUseTalent = _M.postUseTalent
+function _M:postUseTalent(talent, ret, silent)
+    local result = postUseTalent(self, talent, ret, silent)
+    if not result then self.AI_talentfailed[talent.id] = true end
+    return result
 end
 
 local function lowHealth(enemy)
@@ -251,13 +241,11 @@ end
 
 -- TODO add configurability, at least for Meditation
 local function activateSustained()
-    local talents = filterUsedTalents(getAvailableTalents())
+    local talents = filterFailedTalents(getAvailableTalents())
     for i,tid in pairs(talents) do
         local t = game.player:getTalentFromId(tid)
         if t.mode == "sustained" then
-            local energy_precast = game.player.energy.value
             game.player:useTalent(tid)
-            markTalentUsed(t, energy_precast)
         end
     end
 end
@@ -339,7 +327,7 @@ local function player_ai_act()
         local targets = {}
         for index, enemy in pairs(hostiles) do
             -- attacking is a talent, so we don't need to add it as a choice
-            if filterUsedTalents(getAvailableTalents(enemy)) then
+            if filterFailedTalents(getAvailableTalents(enemy)) then
                 --enemy in range! Add them to possible target queue
                 table.insert(targets, enemy)
             end
@@ -350,13 +338,11 @@ local function player_ai_act()
         -- the AI is dumb and doesn't understand how powers work, so pick one at random!
         if target ~= nil then
             local talents = getAvailableTalents(target)
-            talents = filterUsedTalents(talents)
+            talents = filterFailedTalents(talents)
 	    	local tid = talents[rng.range(1, #talents)]
 	    	if tid ~= nil then
-                local energy_precast = game.player.energy.value
                 game.player:setTarget(target.actor)
                 game.player:useTalent(tid,nil,nil,nil,target.actor)
-                markTalentUsed(game.player:getTalentFromId(tid), energy_precast)
     		    if game.player:enoughEnergy() then
     		        player_ai_act()
     		    end
@@ -421,8 +407,9 @@ function _M:act()
             return ret
         end
         aiTurnCount = aiTurnCount + 1
+        game.player.AI_talentfailed = {}
         player_ai_act()
-        game.player.AI_talentused = {}
+        game.player.AI_talentfailed = {}
     end
     if aiTurnCount > 1000 then
         aiStop("#LIGHT_RED#AI Disabled. AI acted for 1000 turns. Did it get stuck?")
