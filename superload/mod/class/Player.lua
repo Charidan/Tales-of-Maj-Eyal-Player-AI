@@ -262,7 +262,7 @@ local function validateRest(turns)
 end
 
 local function getLowestHealthEnemy(enemySet)
-    local low_mark = MAX_INT -- remember this value is a hack from above
+    local low_mark = MAX_INT
     local target = nil
     for index, enemy in pairs(enemySet) do
         -- ENEMY is a table with { x, y, entity, name, actor }
@@ -272,6 +272,13 @@ local function getLowestHealthEnemy(enemySet)
         end
     end
     return target
+end
+
+local old_onTakeHit = _M.onTakeHit
+function _M:onTakeHit(value, src, death_note)
+    ret = old_onTakeHit(value, src, death_note)
+    ai_state = PAI_STATE_HUNT
+    return ret
 end
 
 local function player_ai_act()
@@ -285,11 +292,13 @@ local function player_ai_act()
     
     activateSustained()
     
+    -- Tell us what you're thinking little AI
     game.log(aiStateString())
         
     if ai_state == PAI_STATE_REST then
         local terrain = game.level.map(game.player.x, game.player.y, game.level.map.TERRAIN)
-        if terrain.air_level and terrain.air_level < 0 then
+        -- IF WE ARE SUFFOCATING
+        if terrain.air_level and terrain.air_level <= -game.player.air_regen then
             -- run to air
             local path = getPathToAir(game.player)
             if path ~= nil then
@@ -315,8 +324,7 @@ local function player_ai_act()
         return
         
     elseif ai_state == PAI_STATE_HUNT then
-        -- TODO figure out how to hook takeHit() to get here
-        -- then figure out if we can target the damage source
+        -- TODO figure out if we can target the damage source
         -- or we have to randomwalk/flee
         
         -- for now:
