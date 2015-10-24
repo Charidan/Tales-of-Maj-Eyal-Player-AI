@@ -52,9 +52,14 @@ local PAI_STATE_EXPLORE = 1
 local PAI_STATE_HUNT = 2
 local PAI_STATE_FIGHT = 3
 
+-- configurables (when configuration is added)
+local THRESHOLD_AVOID_ENGAGE = 0.5
+local THRESHOLD_CANCEL_LOW_HEALTH = 0.25
+
 -- TODO ai_state likely needs to be part of _M
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
+local hunt_target = nil
 
 _M.AI_talentfailed = {}
 
@@ -228,7 +233,7 @@ end
 
 local function lowHealth(enemy)
     -- TODO make threshold configurable
-    if game.player.life < game.player.max_life/4 then
+    if game.player.life < game.player.max_life * THRESHOLD_CANCEL_LOW_HEALTH then
         if enemy ~= nil then
             local dir = game.level.map:compassDirection(enemy.x - game.player.x, enemy.y - game.player.y)
             local name = enemy.name
@@ -276,8 +281,11 @@ end
 
 local old_onTakeHit = _M.onTakeHit
 function _M:onTakeHit(value, src, death_note)
-    ret = old_onTakeHit(value, src, death_note)
-    ai_state = PAI_STATE_HUNT
+    ret = old_onTakeHit(self, value, src, death_note)
+    if ai_state ~= PAI_STATE_FIGHT then
+        ai_state = PAI_STATE_HUNT
+        hunt_target = src
+    end
     return ret
 end
 
@@ -324,12 +332,54 @@ local function player_ai_act()
         return
         
     elseif ai_state == PAI_STATE_HUNT then
-        -- TODO figure out if we can target the damage source
-        -- or we have to randomwalk/flee
-        
-        -- for now:
-        ai_state = PAI_STATE_EXPLORE
-        return player_ai_act()
+        if hunt_target then
+            local dir = nil
+            
+            -- if we know where the shooter is, figure out if we want to approach or flee
+            if hunt_target.x and hunt_target.y then
+                if game.player.life < game.player.max_life*THRESHOLD_AVOID_ENGAGE then
+                    dir = getDirNum(hunt_target, game.player)
+                else
+                    dir = getDirNum(game.player, hunt_target)
+                end
+            end
+
+            local moved = false
+            if dir then
+                moved = game.player:attackOrMoveDir(dir)
+            else
+                -- if we don't know where to go, move in a random direction
+                dir = rng.range(1, 10)
+            end
+
+            local offset = 1
+            local toggle = 1
+            while not moved do
+                local tryDir = dir + (offset * toggle)
+
+                if tryDir < 1 then tryDir = tryDir + 9 end
+                if tryDir > 9 then tryDir = tryDir - 9 end
+                if tryDir == 5 then tryDir = tryDir + toggle end
+
+                moved = game.player:attackOrMoveDir(dir)
+
+                if toggle < 0 then offset = offset + 1 end
+                toggle = toggle * -1
+
+                if offset > 4 then break end
+            end
+
+            if not moved then
+                -- tried to engage/flee but could not move
+                -- resting is better than waiting a turn, kind of?
+                ai_state = PAI_STATE_REST
+                return player_ai_act()
+            end
+        else
+            ai_state = PAI_STATE_EXPLORE
+            return player_ai_act()
+        end
+        return
     
     elseif ai_state == PAI_STATE_FIGHT then
         local targets = {}
@@ -409,12 +459,12 @@ end
 local old_act = _M.act
 function _M:act()
     local ret = old_act(game.player)
+    aiTurnCount = aiTurnCount + 1
     if (not game.player.running) and (not game.player.resting) and _M.ai_active then
         if game.zone.wilderness then
             aiStop("#RED#Player AI cancelled by wilderness zone!")
             return ret
         end
-        aiTurnCount = aiTurnCount + 1
         game.player.AI_talentfailed = {}
         player_ai_act()
         game.player.AI_talentfailed = {}
