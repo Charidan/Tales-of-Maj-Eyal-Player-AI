@@ -20,7 +20,7 @@
 -- Modifications by Charidan
 
 
--- THIS IS A HACK TO MAKE A MAX_INT
+-- HACK TO MAKE A MAX_INT
 local MAX_INT = 2
 while true do
     local nextstep = MAX_INT*2
@@ -95,6 +95,7 @@ local function spotHostiles(self, actors_only)
 	local seen = {}
 	if not self.x then return seen end
 
+    -- TODO actually we want to use telepathy for non-resting purposes
 	-- Check for visible monsters, only see LOS actors, so telepathy wont prevent resting
 	core.fov.calc_circle(self.x, self.y, game.level.map.w, game.level.map.h, self.sight or 10, function(_, x, y) return game.level.map:opaque(x, y) end, function(_, x, y)
 		local actor = game.level.map(x, y, game.level.map.ACTOR)
@@ -136,7 +137,9 @@ local function getPathToAir(self)
     local seen = {}
 	if not self.x then return seen end
 
-	-- Check for visible monsters, only see LOS actors, so telepathy wont prevent resting
+    -- Check for tiles with air
+    -- a tile without an explicit air_level variable has max air
+    -- (so that non-water maps don't need to store it for every tile)
 	core.fov.calc_circle(self.x, self.y, game.level.map.w, game.level.map.h, self.sight or 10, function(_, x, y) return game.level.map:opaque(x, y) end, function(_, x, y)
 		local terrain = game.level.map(x, y, game.level.map.TERRAIN)
 		if not terrain.air_level or terrain.air_level > 0 then
@@ -343,14 +346,13 @@ local function player_ai_act()
                     dir = getDirNum(game.player, hunt_target)
                 end
             end
-
-            local moved = false
-            if dir then
-                moved = game.player:attackOrMoveDir(dir)
-            else
-                -- if we don't know where to go, move in a random direction
-                dir = rng.range(1, 10)
+            if not dir then
+                -- if we don't know where to go, we don't really have a target
+                hunt_target = nil
+                return player_ai_act()
             end
+
+            local moved = game.player:attackOrMoveDir(dir)
 
             local offset = 1
             local toggle = 1
