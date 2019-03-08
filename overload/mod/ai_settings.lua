@@ -9,6 +9,7 @@ function AISettings.init()
     -- set defaults for the player ai
     if type(config.settings.tome.playerai_health_threshold_stop)  == 'nil' then config.settings.tome.playerai_health_threshold_stop  = 0.25 end
     if type(config.settings.tome.playerai_health_threshold_avoid) == 'nil' then config.settings.tome.playerai_health_threshold_avoid = 0.50 end
+    if type(config.settings.tome.playerai_hunt_timeout) == 'nil' then config.settings.tome.playerai_hunt_timeout = 10 end
 end
 
 return AISettings

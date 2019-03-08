@@ -37,6 +37,7 @@ local PAI_STATE_FIGHT = 3
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
 local hunt_target = nil
+local hunt_start = nil
 
 _M.AI_talentfailed = {}
 
@@ -57,6 +58,8 @@ local function aiStop(msg)
     _M.ai_active = false
     ai_state = PAI_STATE_REST
     aiTurnCount = 0
+    hunt_target = nil
+    hunt_start = nil
     if msg then game.log(msg) else game.log("#LIGHT_RED#AI Stopping!") end
 end
 
@@ -265,6 +268,7 @@ function _M:onTakeHit(value, src, death_note)
     if ai_state ~= PAI_STATE_FIGHT then
         ai_state = PAI_STATE_HUNT
         hunt_target = src
+        hunt_start = ai_turn_count
     end
     return ret
 end
@@ -298,6 +302,7 @@ local function player_ai_act()
             end
         end
         return game.player:restInit(nil,nil,nil,nil,validateRest)
+        
     elseif ai_state == PAI_STATE_EXPLORE then
         if game.player.air < 75 then
             ai_state = PAI_STATE_REST
@@ -312,9 +317,16 @@ local function player_ai_act()
         return
         
     elseif ai_state == PAI_STATE_HUNT then
+        if hunt_start ~= nil and aiTurnCount - hunt_start > ai_conf.playerai_hunt_timeout then
+            ai_state = PAI_STATE_REST
+            hunt_target = nil
+            hunt_start = nil
+            return payer_ai_act()
+        end
+
+        local dir = nil
+
         if hunt_target then
-            local dir = nil
-            
             -- if we know where the shooter is, figure out if we want to approach or flee
             if hunt_target.x and hunt_target.y then
                 if game.player.life < game.player.max_life*ai_conf.playerai_health_threshold_avoid then
@@ -328,35 +340,36 @@ local function player_ai_act()
                 hunt_target = nil
                 return player_ai_act()
             end
+        end
 
-            local moved = game.player:attackOrMoveDir(dir)
+        if dir == nil then
+            dir = rng.range(1, 10)
+        end
+        
+        local moved = game.player:attackOrMoveDir(dir)
 
-            local offset = 1
-            local toggle = 1
-            while not moved do
-                local tryDir = dir + (offset * toggle)
+        local offset = 1
+        local toggle = 1
+        while not moved do
+            local tryDir = dir + (offset * toggle)
 
-                if tryDir < 1 then tryDir = tryDir + 9 end
-                if tryDir > 9 then tryDir = tryDir - 9 end
-                if tryDir == 5 then tryDir = tryDir + toggle end
+            if tryDir < 1 then tryDir = tryDir + 9 end
+            if tryDir > 9 then tryDir = tryDir - 9 end
+            if tryDir == 5 then tryDir = tryDir + toggle end
 
-                moved = game.player:attackOrMoveDir(dir)
+            moved = game.player:attackOrMoveDir(dir)
 
-                if toggle < 0 then offset = offset + 1 end
-                toggle = toggle * -1
+            if toggle < 0 then offset = offset + 1 end
+            toggle = toggle * -1
 
-                if offset > 4 then break end
-            end
+            if offset > 4 then break end
+        end
 
-            if not moved then
-                -- tried to engage/flee but could not move
-                -- resting is better than waiting a turn, kind of?
-                ai_state = PAI_STATE_REST
-                return player_ai_act()
-            end
-        else
-            ai_state = PAI_STATE_EXPLORE
-            return player_ai_act()
+        if not moved then
+            -- tried to engage/flee but could not move
+            -- end turn
+            -- TODO use defensive/healing talents
+            game.player:useEnergy()
         end
         return
     

@@ -12,6 +12,7 @@ local PlayerAIOptions = {}
 function PlayerAIOptions.createTab(self)
     local list = {}
 
+    -- health threshold disable
     local zone = Textzone.new{
         width=self.c_desc.w, height=self.c_desc.h,
         text=string.toTString"If character health drops below this percentage, the AI will disable itself and notify you that health is low."
@@ -33,6 +34,7 @@ function PlayerAIOptions.createTab(self)
     	end
     }
     
+    -- health threshold hunt avoid
     zone = Textzone.new{
         width=self.c_desc.w, height=self.c_desc.h,
         text=string.toTString"If character health drops below this percentage, the AI will attempt to flee attacks from unseen enemies and find a safe place to rest."
@@ -48,6 +50,28 @@ function PlayerAIOptions.createTab(self)
     		    function(qty)
     			    game:saveSettings("tome.playerai_health_threshold_avoid", ("tome.playerai_health_threshold_avoid = %f\n"):format(qty/100.0))
     			    config.settings.tome.playerai_health_threshold_avoid = qty/100.0
+    			    self.c_list:drawItem(item)
+    		    end
+    		))
+    	end
+    }
+    
+    -- hunt avoid timeout
+    zone = Textzone.new{
+        width=self.c_desc.w, height=self.c_desc.h,
+        text=string.toTString"If the AI is out-of-combat and attacked by unseen enemies, it will enter \"hunting\" state. This value is the number of turns the AI continues to hunt (or flee) after the last time it was hit before returning to rest state."
+    }
+    list[#list+1] = {
+        zone=zone, name=string.toTString"#GOLD##{bold}#Hunt state timeout#WHITE##{normal}#",
+        status=function(item)
+            return tostring(config.settings.tome.playerai_hunt_timeout)
+	    end,
+	    fct=function(item)
+    		game:registerDialog(GetQuantity.new("Enter hunt state timeout", "Number of turns",
+    		    config.settings.tome.playerai_hunt_timeout, nil,
+    		    function(qty)
+    			    game:saveSettings("tome.playerai_hunt_timeout", ("tome.playerai_hunt_timeout = %d\n"):format(qty))
+    			    config.settings.tome.playerai_hunt_timeout = qty
     			    self.c_list:drawItem(item)
     		    end
     		))
