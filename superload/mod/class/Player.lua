@@ -32,10 +32,6 @@ local PAI_STATE_EXPLORE = 1
 local PAI_STATE_HUNT = 2
 local PAI_STATE_FIGHT = 3
 
--- configurables (when configuration is added)
-local THRESHOLD_AVOID_ENGAGE = 0.5
-local THRESHOLD_CANCEL_LOW_HEALTH = 0.25
-
 -- TODO state variables likely needs to be part of _M if you somehow save during AI runtime and load back into it
 -- alternately not, for the same reason that the AI will start off in blank-off state on load, which is likely preferable?
 local ai_state = PAI_STATE_REST
@@ -217,7 +213,7 @@ end
 
 local function lowHealth(enemy)
     -- TODO make threshold configurable
-    if game.player.life < game.player.max_life * THRESHOLD_CANCEL_LOW_HEALTH then
+    if game.player.life < game.player.max_life * ai_conf.health_threshold_stop then
         if enemy ~= nil then
             local dir = game.level.map:compassDirection(enemy.x - game.player.x, enemy.y - game.player.y)
             local name = enemy.name
@@ -424,9 +420,6 @@ local function player_ai_act()
 end
 
 function _M:player_ai_start()
-    -- TODO test print
-    game.log("#GREEN#health_threshold_flee = #GOLD#" + config.settings.playerai.health_threshold_flee)
-    game.log("#GREEN#health_threshold_flee = #GOLD#" + ai_conf.health_threshold_flee)
     if _M.ai_active == true then
         return aiStop("#GOLD#Disabling Player AI!")
     end

@@ -19,7 +19,7 @@ function PlayerAIOptions.createTab(self)
     list[#list+1] = {
         zone=zone, name=string.toTString"#GOLD##{bold}#Disable-AI health threshold#WHITE##{normal}#",
         status=function(item)
-            return tostring(config.settings.playerai.health_threshold_stop)
+            return tostring(config.settings.playerai.health_threshold_stop*100)
 	    end,
 	    fct=function(item)
     		game:registerDialog(GetQuantity.new("Enter disable-AI health threshold", "From 0% to 100%",
@@ -40,7 +40,7 @@ function PlayerAIOptions.createTab(self)
     list[#list+1] = {
         zone=zone, name=string.toTString"#GOLD##{bold}#Avoid-combat health threshold#WHITE##{normal}#",
         status=function(item)
-            return tostring(config.settings.playerai.health_threshold_flee)
+            return tostring(config.settings.playerai.health_threshold_flee*100)
 	    end,
 	    fct=function(item)
     		game:registerDialog(GetQuantity.new("Enter avoid-combat health threshold", "From 0% to 100%",
