@@ -1,58 +1,44 @@
--- ToME - Tales of Maj'Eyal:
--- Copyright (C) 2009, 2010, 2011 Nicolas Casalini
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
--- Nicolas Casalini "DarkGod"
--- darkgod@te4.org
---
--- Addon by Charidan
-
 long_name = "Player AI"
 short_name = "player-ai"
 for_module = "tome"
-version = {1,3,1}
+version = {1,5,5}
+addon_version = {1,6,0}
 weight = 100
 author = { "Charidan (twilly0@gmail.com)" }
 description = [[Adds a keybind to activate the new player AI. Set to Alt+F1 by default.
-This player AI rests, auto-explores, and attacks enemies.
-It will clear an entire floor or stop when it hits 1/4 health in the presence of enemies.
-Future versions may add configurable exit conditions and talent use.
+This player AI rests, auto-explores, and attacks enemies (using most talents when possible).
+It will clear an entire floor or stop when it hits a configurable health threshold (default 25%) in the presence of enemies.
 
-This AI has undefined behavior in the Sandworm Lair, use it there at your own risk.
+This AI has not been tested in the Sandworm Lair, use it there at your own risk.
 
-Note for Developers: This addon superwrites Player:act(), so if your addon also touches Player:act() change the load order so that the Player AI addon loads last.
+Compatibility note: This addon superwrites Player:act(), so if your addon also touches Player:act() change the load order so that the Player AI addon loads last.
 
 CURRENT FEATURES:
  - Rests!
  - Autoexplores!
- - Uses talents randomly! (No exceptions yet for talents like Meditation or Phase Door to use them intelligently)
  - Attacks enemies!
+ - Uses talents randomly! (No exceptions yet for talents like Meditation or Phase Door to use them intelligently)
 
 CURRENT BUGS:
- - The AI assumes it is safe when attacked from unseen enemies, including when it is blinded in combat
- - The AI sometimes falls through to its "wait a turn" case when it doesn't seem necessary
+ - It can get stuck in infinite explore loops, so I added a setting for max turns it can run in a row (default 1000) so it will eventually cede control back to you.
+ - The AI still has trouble understanding water. It doesn't know about waterbreathing, and it doesn't recognize "bubbles" as air. So it's going to complain about suffocation constantly while it's underwater, but paradoxically seems to always move in the intelligent direction while doing so.
+ - The AI sometimes falls through to its "wait a turn" case when it doesn't seem necessary. This will be awful to debug.
 
-v1.5 PATCH NOTES:
- - Updated the cast tracking system to check the cooldowns and energy (time) cost of talents
- - - If a talent with a cooldown fails to go on cooldown, it is assumed the talent cannot be used
- - - If a talent with an energy cost fails to expend energy, it is assumed the talent cannot be used
- - - If a talent has no cooldown and no energy cost, it is limited to a maximum number of uses per turn, currently 5
- - Fixed a bug with "waiting" where the AI called the wrong function to wait and ended up hanging.
+v1.6 PATCH NOTES:
+ - Added framework support for configurations!
+ - - There is a new tab in the Game Options menu for "Player AI" settings.
+ - - Configurable percentage health thresholds for disabling the AI or fleeing in "hunt" state.
+ - - Configurable timeout on "hunt" state.
+ - - Just three settings for now, will definitely be more later.
+ - Added a primitive "hunting" mode.
+ - - If out-of-combat and attacked by an enemy it cannot see (including when it is blinded; the AI is dumb), it will check if the enemy position is known and rush them.
+ - - If the attacker's position is unknown, the AI will randomwalk instead of standing still.
+ - - Configurable health threshold to instead avoid the engagement and lose its pursuers so it can rest safely.
  
 Stuff I want implemented soon:
- - A "hunting" AI state to react to damage taken while out of combat
+ - Smarter "hunting" state.
+ - Assay practicality of per-talent settings to control usage.
+ - Improve understanding of talent types (such as which talents heal/defend you and should be used while resting/hunting).
 ]]
 tags = { 'keybind', 'options', 'playerai' }
 hooks = true

@@ -1,25 +1,3 @@
--- ToME - Tales of Maj'Eyal
--- Copyright (C) 2009, 2010, 2011, 2012, 2013 Nicolas Casalini
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
--- Nicolas Casalini "DarkGod"
--- darkgod@te4.org
-
--- Modifications by Charidan
-
-
 -- HACK TO MAKE A MAX_INT
 local MAX_INT = 2
 while true do
@@ -44,6 +22,8 @@ local Map = require "engine.Map"
 local PlayerRest = require "engine.interface.PlayerRest"
 local PlayerExplore = require "mod.class.interface.PlayerExplore"
 
+local ai_conf = config.settings.tome
+
 local _M = loadPrevious(...)
 
 -- TODO these probably need to be global
@@ -52,14 +32,12 @@ local PAI_STATE_EXPLORE = 1
 local PAI_STATE_HUNT = 2
 local PAI_STATE_FIGHT = 3
 
--- configurables (when configuration is added)
-local THRESHOLD_AVOID_ENGAGE = 0.5
-local THRESHOLD_CANCEL_LOW_HEALTH = 0.25
-
--- TODO ai_state likely needs to be part of _M
+-- TODO state variables likely needs to be part of _M if you somehow save during AI runtime and load back into it
+-- alternately not, for the same reason that the AI will start off in blank-off state on load, which is likely preferable?
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
 local hunt_target = nil
+local hunt_start = nil
 
 _M.AI_talentfailed = {}
 
@@ -80,6 +58,8 @@ local function aiStop(msg)
     _M.ai_active = false
     ai_state = PAI_STATE_REST
     aiTurnCount = 0
+    hunt_target = nil
+    hunt_start = nil
     if msg then game.log(msg) else game.log("#LIGHT_RED#AI Stopping!") end
 end
 
@@ -236,7 +216,7 @@ end
 
 local function lowHealth(enemy)
     -- TODO make threshold configurable
-    if game.player.life < game.player.max_life * THRESHOLD_CANCEL_LOW_HEALTH then
+    if game.player.life < game.player.max_life * config.settings.tome.playerai_health_threshold_stop then
         if enemy ~= nil then
             local dir = game.level.map:compassDirection(enemy.x - game.player.x, enemy.y - game.player.y)
             local name = enemy.name
@@ -288,6 +268,7 @@ function _M:onTakeHit(value, src, death_note)
     if ai_state ~= PAI_STATE_FIGHT then
         ai_state = PAI_STATE_HUNT
         hunt_target = src
+        hunt_start = ai_turn_count
     end
     return ret
 end
@@ -321,6 +302,7 @@ local function player_ai_act()
             end
         end
         return game.player:restInit(nil,nil,nil,nil,validateRest)
+        
     elseif ai_state == PAI_STATE_EXPLORE then
         if game.player.air < 75 then
             ai_state = PAI_STATE_REST
@@ -335,12 +317,19 @@ local function player_ai_act()
         return
         
     elseif ai_state == PAI_STATE_HUNT then
+        if hunt_start ~= nil and aiTurnCount - hunt_start > ai_conf.playerai_hunt_timeout then
+            ai_state = PAI_STATE_REST
+            hunt_target = nil
+            hunt_start = nil
+            return payer_ai_act()
+        end
+
+        local dir = nil
+
         if hunt_target then
-            local dir = nil
-            
             -- if we know where the shooter is, figure out if we want to approach or flee
             if hunt_target.x and hunt_target.y then
-                if game.player.life < game.player.max_life*THRESHOLD_AVOID_ENGAGE then
+                if game.player.life < game.player.max_life*ai_conf.playerai_health_threshold_avoid then
                     dir = getDirNum(hunt_target, game.player)
                 else
                     dir = getDirNum(game.player, hunt_target)
@@ -351,35 +340,36 @@ local function player_ai_act()
                 hunt_target = nil
                 return player_ai_act()
             end
+        end
 
-            local moved = game.player:attackOrMoveDir(dir)
+        if dir == nil then
+            dir = rng.range(1, 10)
+        end
+        
+        local moved = game.player:attackOrMoveDir(dir)
 
-            local offset = 1
-            local toggle = 1
-            while not moved do
-                local tryDir = dir + (offset * toggle)
+        local offset = 1
+        local toggle = 1
+        while not moved do
+            local tryDir = dir + (offset * toggle)
 
-                if tryDir < 1 then tryDir = tryDir + 9 end
-                if tryDir > 9 then tryDir = tryDir - 9 end
-                if tryDir == 5 then tryDir = tryDir + toggle end
+            if tryDir < 1 then tryDir = tryDir + 9 end
+            if tryDir > 9 then tryDir = tryDir - 9 end
+            if tryDir == 5 then tryDir = tryDir + toggle end
 
-                moved = game.player:attackOrMoveDir(dir)
+            moved = game.player:attackOrMoveDir(dir)
 
-                if toggle < 0 then offset = offset + 1 end
-                toggle = toggle * -1
+            if toggle < 0 then offset = offset + 1 end
+            toggle = toggle * -1
 
-                if offset > 4 then break end
-            end
+            if offset > 4 then break end
+        end
 
-            if not moved then
-                -- tried to engage/flee but could not move
-                -- resting is better than waiting a turn, kind of?
-                ai_state = PAI_STATE_REST
-                return player_ai_act()
-            end
-        else
-            ai_state = PAI_STATE_EXPLORE
-            return player_ai_act()
+        if not moved then
+            -- tried to engage/flee but could not move
+            -- end turn
+            -- TODO use defensive/healing talents
+            game.player:useEnergy()
         end
         return
     
