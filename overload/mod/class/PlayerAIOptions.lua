@@ -25,7 +25,7 @@ function PlayerAIOptions.createTab(self)
     		game:registerDialog(GetQuantity.new("Enter disable-AI health threshold", "From 0% to 100%",
     		    config.settings.playerai.health_threshold_stop*100, 100,
     		    function(qty)
-    			    game:saveSettings("playerai.health_threshold_stop", ("playerai.health_threshold = %f\n"):format(qty/100.0))
+    			    game:saveSettings("playerai.health_threshold_stop", ("playerai.health_threshold_stop = %f\n"):format(qty/100.0))
     			    config.settings.playerai.health_threshold_stop = qty/100.0
     			    self.c_list:drawItem(item)
     		    end
@@ -46,7 +46,7 @@ function PlayerAIOptions.createTab(self)
     		game:registerDialog(GetQuantity.new("Enter avoid-combat health threshold", "From 0% to 100%",
     		    config.settings.playerai.health_threshold_avoid*100, 100,
     		    function(qty)
-    			    game:saveSettings("playerai.health_threshold_avoid", ("playerai.health_threshold = %f\n"):format(qty/100.0))
+    			    game:saveSettings("playerai.health_threshold_avoid", ("playerai.health_threshold_avoid = %f\n"):format(qty/100.0))
     			    config.settings.playerai.health_threshold_avoid = qty/100.0
     			    self.c_list:drawItem(item)
     		    end
