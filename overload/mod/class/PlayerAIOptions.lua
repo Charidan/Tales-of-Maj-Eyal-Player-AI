@@ -35,19 +35,19 @@ function PlayerAIOptions.createTab(self)
     
     zone = Textzone.new{
         width=self.c_desc.w, height=self.c_desc.h,
-        text=string.toTString"If character health drops below this percentage, the AI will attempt to flee from combat and find a safe place to rest."
+        text=string.toTString"If character health drops below this percentage, the AI will attempt to flee attacks from unseen enemies and find a safe place to rest."
     }
     list[#list+1] = {
         zone=zone, name=string.toTString"#GOLD##{bold}#Avoid-combat health threshold#WHITE##{normal}#",
         status=function(item)
-            return tostring(config.settings.playerai.health_threshold_flee*100)
+            return tostring(config.settings.playerai.health_threshold_avoid*100)
 	    end,
 	    fct=function(item)
     		game:registerDialog(GetQuantity.new("Enter avoid-combat health threshold", "From 0% to 100%",
-    		    config.settings.playerai.health_threshold_flee*100, 100,
+    		    config.settings.playerai.health_threshold_avoid*100, 100,
     		    function(qty)
-    			    game:saveSettings("playerai.health_threshold_flee", ("playerai.health_threshold = %f\n"):format(qty/100.0))
-    			    config.settings.playerai.health_threshold_flee = qty/100.0
+    			    game:saveSettings("playerai.health_threshold_avoid", ("playerai.health_threshold = %f\n"):format(qty/100.0))
+    			    config.settings.playerai.health_threshold_avoid = qty/100.0
     			    self.c_list:drawItem(item)
     		    end
     		))
