@@ -1,7 +1,7 @@
 long_name = "Player AI"
 short_name = "player-ai"
 for_module = "tome"
-version = {1,5,5}
+version = {1,5,10}
 addon_version = {1,6,0}
 weight = 100
 author = { "Charidan (twilly0@gmail.com)" }
