@@ -1,25 +1,3 @@
--- ToME - Tales of Maj'Eyal
--- Copyright (C) 2009, 2010, 2011, 2012, 2013 Nicolas Casalini
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
--- Nicolas Casalini "DarkGod"
--- darkgod@te4.org
-
--- Modifications by Charidan
-
-
 -- HACK TO MAKE A MAX_INT
 local MAX_INT = 2
 while true do
@@ -44,6 +22,8 @@ local Map = require "engine.Map"
 local PlayerRest = require "engine.interface.PlayerRest"
 local PlayerExplore = require "mod.class.interface.PlayerExplore"
 
+local ai_conf = config.settings.playerai
+
 local _M = loadPrevious(...)
 
 -- TODO these probably need to be global
@@ -56,7 +36,8 @@ local PAI_STATE_FIGHT = 3
 local THRESHOLD_AVOID_ENGAGE = 0.5
 local THRESHOLD_CANCEL_LOW_HEALTH = 0.25
 
--- TODO ai_state likely needs to be part of _M
+-- TODO state variables likely needs to be part of _M if you somehow save during AI runtime and load back into it
+-- alternately not, for the same reason that the AI will start off in blank-off state on load, which is likely preferable?
 local ai_state = PAI_STATE_REST
 local aiTurnCount = 0
 local hunt_target = nil
@@ -340,7 +321,7 @@ local function player_ai_act()
             
             -- if we know where the shooter is, figure out if we want to approach or flee
             if hunt_target.x and hunt_target.y then
-                if game.player.life < game.player.max_life*THRESHOLD_AVOID_ENGAGE then
+                if game.player.life < game.player.max_life*ai_conf.health_threshold_flee then
                     dir = getDirNum(hunt_target, game.player)
                 else
                     dir = getDirNum(game.player, hunt_target)
@@ -443,6 +424,9 @@ local function player_ai_act()
 end
 
 function _M:player_ai_start()
+    -- TODO test print
+    game.log("#GREEN#health_threshold_flee = #GOLD#" + config.settings.playerai.health_threshold_flee)
+    game.log("#GREEN#health_threshold_flee = #GOLD#" + ai_conf.health_threshold_flee)
     if _M.ai_active == true then
         return aiStop("#GOLD#Disabling Player AI!")
     end

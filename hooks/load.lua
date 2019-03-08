@@ -11,21 +11,33 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+local PlayerAIOptions = require "mod.class.PlayerAIOptions"
 local KeyBind = require "engine.KeyBind"
+local Textzone = require "engine.ui.Textzone"
+local GetQuantity = require "engine.dialogs.GetQuantity"
 
+class:bindHook("ToME:run",
+    function(self, data)
+    	KeyBind:load("toggle-player-ai")
+	    game.key:addBinds {
+		    TOGGLE_PLAYER_AI = function()
+		        local Player = require "mod.class.Player"
+		        game.log("#GOLD#Player AI Toggle requested!")
+			    Player.player_ai_start()
+		    end
+	    }
+    end
+)
 
-class:bindHook("ToME:run", function(self, data)
-	KeyBind:load("toggle-player-ai")
-	game.key:addBinds {
-		TOGGLE_PLAYER_AI = function()
-		    local Player = require "mod.class.Player"
-		    game.log("#GOLD#Player AI Toggle requested!")
-			Player.player_ai_start()
-		end
-	}
-end)
-
-
+class:bindHook("GameOptions:tabs",
+    function(self, data)
+	    data.tab("Player AI",
+	        function()
+	            self.list = PlayerAIOptions.createTab(self)
+	        end
+	    )
+	end
+)
 
 
 
