@@ -22,7 +22,7 @@ local Map = require "engine.Map"
 local PlayerRest = require "engine.interface.PlayerRest"
 local PlayerExplore = require "mod.class.interface.PlayerExplore"
 
-local ai_conf = config.settings.playerai
+local ai_conf = config.settings.tome
 
 local _M = loadPrevious(...)
 
@@ -213,7 +213,7 @@ end
 
 local function lowHealth(enemy)
     -- TODO make threshold configurable
-    if game.player.life < game.player.max_life * config.settings.playerai.health_threshold_stop then
+    if game.player.life < game.player.max_life * config.settings.tome.playerai_health_threshold_stop then
         if enemy ~= nil then
             local dir = game.level.map:compassDirection(enemy.x - game.player.x, enemy.y - game.player.y)
             local name = enemy.name
@@ -317,7 +317,7 @@ local function player_ai_act()
             
             -- if we know where the shooter is, figure out if we want to approach or flee
             if hunt_target.x and hunt_target.y then
-                if game.player.life < game.player.max_life*ai_conf.health_threshold_avoid then
+                if game.player.life < game.player.max_life*ai_conf.playerai_health_threshold_avoid then
                     dir = getDirNum(hunt_target, game.player)
                 else
                     dir = getDirNum(game.player, hunt_target)

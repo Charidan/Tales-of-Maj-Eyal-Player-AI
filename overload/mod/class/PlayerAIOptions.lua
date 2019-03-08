@@ -19,14 +19,14 @@ function PlayerAIOptions.createTab(self)
     list[#list+1] = {
         zone=zone, name=string.toTString"#GOLD##{bold}#Disable-AI health threshold#WHITE##{normal}#",
         status=function(item)
-            return tostring(config.settings.playerai.health_threshold_stop*100)
+            return tostring(config.settings.tome.playerai_health_threshold_stop*100)
 	    end,
 	    fct=function(item)
     		game:registerDialog(GetQuantity.new("Enter disable-AI health threshold", "From 0% to 100%",
-    		    config.settings.playerai.health_threshold_stop*100, 100,
+    		    config.settings.tome.playerai_health_threshold_stop*100, 100,
     		    function(qty)
-    			    game:saveSettings("playerai.health_threshold_stop", ("playerai.health_threshold_stop = %f\n"):format(qty/100.0))
-    			    config.settings.playerai.health_threshold_stop = qty/100.0
+    			    game:saveSettings("tome.playerai_health_threshold_stop", ("tome.playerai_health_threshold_stop = %f\n"):format(qty/100.0))
+    			    config.settings.tome.playerai_health_threshold_stop = qty/100.0
     			    self.c_list:drawItem(item)
     		    end
     		))
@@ -40,14 +40,14 @@ function PlayerAIOptions.createTab(self)
     list[#list+1] = {
         zone=zone, name=string.toTString"#GOLD##{bold}#Avoid-combat health threshold#WHITE##{normal}#",
         status=function(item)
-            return tostring(config.settings.playerai.health_threshold_avoid*100)
+            return tostring(config.settings.tome.playerai_health_threshold_avoid*100)
 	    end,
 	    fct=function(item)
     		game:registerDialog(GetQuantity.new("Enter avoid-combat health threshold", "From 0% to 100%",
-    		    config.settings.playerai.health_threshold_avoid*100, 100,
+    		    config.settings.tome.playerai_health_threshold_avoid*100, 100,
     		    function(qty)
-    			    game:saveSettings("playerai.health_threshold_avoid", ("playerai.health_threshold_avoid = %f\n"):format(qty/100.0))
-    			    config.settings.playerai.health_threshold_avoid = qty/100.0
+    			    game:saveSettings("tome.playerai_health_threshold_avoid", ("tome.playerai_health_threshold_avoid = %f\n"):format(qty/100.0))
+    			    config.settings.tome.playerai_health_threshold_avoid = qty/100.0
     			    self.c_list:drawItem(item)
     		    end
     		))
