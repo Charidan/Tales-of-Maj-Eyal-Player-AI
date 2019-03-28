@@ -9,8 +9,42 @@ local FontPackage = require "engine.FontPackage"
 
 local PlayerAIOptions = {}
 
+-- HACK TO MAKE A MAX_INT
+local MAX_INT = 2
+while true do
+    local nextstep = MAX_INT*2
+    if (math.floor(nextstep) == nextstep) and (nextstep-1 ~= nextstep) then
+        MAX_INT = nextstep
+    else
+        break
+    end
+end
+-- END HACK
+
 function PlayerAIOptions.createTab(self)
     local list = {}
+
+    -- maximum runtime (turns)
+    local zone = Textzone.new{
+        width=self.c_desc.w, height=self.c_desc.h,
+        text=string.toTString"Maximum number of turns the AI can run consecutively. The AI can get stuck in loops and is difficult to cancel manually, so adjust this value to match your patience with it."
+    }
+    list[#list+1] = {
+        zone=zone, name=string.toTString"#GOLD##{bold}#Maximum AI runtime#WHITE##{normal}#",
+        status=function(item)
+            return tostring(config.settings.tome.playerai_max_runtime)
+	    end,
+	    fct=function(item)
+    		game:registerDialog(GetQuantity.new("Enter maximum AI runtime in turns", "",
+    		    config.settings.tome.playerai_max_runtime, MAX_INT,
+    		    function(qty)
+    			    game:saveSettings("tome.playerai_max_runtime", ("tome.playerai_max_runtime = %d\n"):format(qty))
+    			    config.settings.tome.playerai_max_runtime = qty
+    			    self.c_list:drawItem(item)
+    		    end
+    		))
+    	end
+    }
 
     -- health threshold disable
     local zone = Textzone.new{

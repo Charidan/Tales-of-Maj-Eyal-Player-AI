@@ -2,7 +2,7 @@ long_name = "Player AI"
 short_name = "player-ai"
 for_module = "tome"
 version = {1,5,10}
-addon_version = {1,6,0}
+addon_version = {1,6,1}
 weight = 100
 author = { "Charidan (twilly0@gmail.com)" }
 description = [[Adds a keybind to activate the new player AI. Set to Alt+F1 by default.
@@ -34,6 +34,9 @@ v1.6 PATCH NOTES:
  - - If out-of-combat and attacked by an enemy it cannot see (including when it is blinded; the AI is dumb), it will check if the enemy position is known and rush them.
  - - If the attacker's position is unknown, the AI will randomwalk instead of standing still.
  - - Configurable health threshold to instead avoid the engagement and lose its pursuers so it can rest safely.
+ 
+ v1.6.1 PATCH NOTES:
+ - Added configuration for the AI runtime timeout. You can now adjust to match your patience with the AI getting stuck in loops.
  
 Stuff I want implemented soon:
  - Smarter "hunting" state.
