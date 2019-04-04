@@ -18,7 +18,7 @@ CURRENT FEATURES:
  - Autoexplores!
  - Attacks enemies!
  - Uses talents randomly! (No exceptions yet for talents like Meditation or Phase Door to use them intelligently)
- - - Note that this addon *does* obey talent auto-use settings, and should be compatible with addons which expand auto-use functionality. Every such addon I checked modifies Player:automaticTalents() and relies on the core Player:act() to call it, which the AI still does.
+ - - Note that this addon *does* obey talent auto-use settings, and should be compatible with addons which expand auto-use functionality. Every such addon I checked modifies Player:automaticTalents() (inherited from Actor) and relies on the core Player:act() to call it, which the AI still does.
 
 CURRENT BUGS:
  - It can get stuck in infinite explore loops, so I added a setting for max turns it can run in a row (default 1000) so it will eventually cede control back to you.
