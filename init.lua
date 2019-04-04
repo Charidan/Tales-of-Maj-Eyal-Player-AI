@@ -9,15 +9,16 @@ description = [[Adds a keybind to activate the new player AI. Set to Alt+F1 by d
 This player AI rests, auto-explores, and attacks enemies (using most talents when possible).
 It will clear an entire floor or stop when it hits a configurable health threshold (default 25%) in the presence of enemies.
 
-This AI has not been tested in the Sandworm Lair, use it there at your own risk.
+This AI has not been tested in the Sandworm Lair; use it there at your own risk.
 
-Compatibility note: This addon superwrites Player:act(), so if your addon also touches Player:act() change the load order so that the Player AI addon loads last.
+Compatibility warning: This addon superwrites Player:act(), so if your addon also touches Player:act() change the load order so that the Player AI addon loads last.
 
 CURRENT FEATURES:
  - Rests!
  - Autoexplores!
  - Attacks enemies!
  - Uses talents randomly! (No exceptions yet for talents like Meditation or Phase Door to use them intelligently)
+ - - Note that this addon *does* obey talent auto-use settings, and should be compatible with addons which expand auto-use functionality. Every such addon I checked modifies Player:automaticTalents() and relies on the core Player:act() to call it, which the AI still does.
 
 CURRENT BUGS:
  - It can get stuck in infinite explore loops, so I added a setting for max turns it can run in a row (default 1000) so it will eventually cede control back to you.
@@ -40,10 +41,8 @@ v1.6 PATCH NOTES:
  
 Stuff I want implemented soon:
  - Smarter "hunting" state.
- - Assay practicality of per-talent settings to control usage.
- - Improve understanding of talent types (such as which talents heal/defend you and should be used while resting/hunting).
 ]]
-tags = { 'keybind', 'options', 'playerai' }
+tags = { 'keybind', 'options', 'playerai', 'auto-use', 'quality of life', 'utility' }
 hooks = true
 overload = true
 superload = true
