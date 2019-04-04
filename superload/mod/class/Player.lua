@@ -461,7 +461,7 @@ function _M:act()
         player_ai_act()
         game.player.AI_talentfailed = {}
     end
-    if aiTurnCount > ai_conf.playerai_max_runtime then
+    if aiTurnCount >= ai_conf.playerai_max_runtime then
         aiStop("#LIGHT_RED#AI Disabled due to timeout after ".. aiTurnCount .." turns. Did it get stuck?")
     end
     return ret
