@@ -279,17 +279,17 @@ local function player_ai_act()
 
         -- stop the player ai if a boss stronger than n appears!
 
-        -- if self.rank == 1 then rank, color = "critter", "#C0C0C0#"
-        -- elseif self.rank == 2 then rank, color = "normal", "#ANTIQUE_WHITE#"
-        -- elseif self.rank == 3 then rank, color = "elite", "#YELLOW#"
-        -- elseif self.rank == 3.2 then rank, color = "rare", "#SALMON#"
-        -- elseif self.rank == 3.5 then rank, color = "unique", "#SANDY_BROWN#"
-        -- elseif self.rank == 4 then rank, color = "boss", "#ORANGE#"
-        -- elseif self.rank == 5 then rank, color = "elite boss", "#GOLD#"
-        -- elseif self.rank >= 10 then rank, color = "god", "#FF4000#"
+        -- rank == 1   then rank, color = "critter",    "#C0C0C0#"
+        -- rank == 2   then rank, color = "normal",     "#ANTIQUE_WHITE#"
+        -- rank == 3   then rank, color = "elite",      "#YELLOW#"
+        -- rank == 3.2 then rank, color = "rare",       "#SALMON#"
+        -- rank == 3.5 then rank, color = "unique",     "#SANDY_BROWN#"
+        -- rank == 4   then rank, color = "boss",       "#ORANGE#"
+        -- rank == 5   then rank, color = "elite boss", "#GOLD#"
+        -- rank >= 10  then rank, color = "god",        "#FF4000#"
 
         for index, enemy in pairs(hostiles) do
-            if enemy.rank > config.settings.tome.playerai_stop_rank then return aiStop("Non-trash enemy sighted!") end
+            if (enemy.rank > config.settings.tome.playerai_stop_rank and config.settings.tome.playerai_stop_rank ~= 0) then return aiStop("Non-trash enemy sighted!") end
         end
 
         local low, msg = lowHealth(hostiles[0])
