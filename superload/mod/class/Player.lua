@@ -80,7 +80,7 @@ local function spotHostiles(self, actors_only)
 	core.fov.calc_circle(self.x, self.y, game.level.map.w, game.level.map.h, self.sight or 10, function(_, x, y) return game.level.map:opaque(x, y) end, function(_, x, y)
 		local actor = game.level.map(x, y, game.level.map.ACTOR)
 		if actor and self:reactionToward(actor) < 0 and self:canSee(actor) and game.level.map.seens(x, y) then
-			seen[#seen + 1] = {x=x,y=y,actor=actor, entity=actor, name=actor.name}
+			seen[#seen + 1] = {x=x,y=y,actor=actor, entity=actor, name=actor.name, rank=actor.rank}
 		end
 	end, nil)
 
@@ -126,7 +126,7 @@ local function getPathToAir(self)
 		    seen[#seen+1] = {x=x, y=y, terrain=terrain}
 		end
 	end, nil)
-	
+
 	local min_dist = MAX_INT
 	local close_coord = nil
 	for i,coord in pairs(seen) do
@@ -136,7 +136,7 @@ local function getPathToAir(self)
 	        close_coord = coord
 	    end
 	end
-	
+
 	if close_coord ~= nil then
     	local a = Astar.new(game.level.map, self)
         local path = a:calc(self.x, self.y, close_coord.x, close_coord.y)
@@ -147,7 +147,7 @@ end
 
 local function getNearestHostile()
     local seen = spotHostiles(game.player)
-    
+
     target = nil
     for index,enemy in pairs(seen) do
         if target == nil
@@ -276,17 +276,33 @@ end
 local function player_ai_act()
     local hostiles = spotHostiles(game.player, true)
     if #hostiles > 0 then
+
+        -- stop the player ai if a boss stronger than n appears!
+
+        -- if self.rank == 1 then rank, color = "critter", "#C0C0C0#"
+        -- elseif self.rank == 2 then rank, color = "normal", "#ANTIQUE_WHITE#"
+        -- elseif self.rank == 3 then rank, color = "elite", "#YELLOW#"
+        -- elseif self.rank == 3.2 then rank, color = "rare", "#SALMON#"
+        -- elseif self.rank == 3.5 then rank, color = "unique", "#SANDY_BROWN#"
+        -- elseif self.rank == 4 then rank, color = "boss", "#ORANGE#"
+        -- elseif self.rank == 5 then rank, color = "elite boss", "#GOLD#"
+        -- elseif self.rank >= 10 then rank, color = "god", "#FF4000#"
+
+        for index, enemy in pairs(hostiles) do
+            if enemy.rank > config.settings.tome.playerai_stop_rank then return aiStop("Non-trash enemy sighted!") end
+        end
+
         local low, msg = lowHealth(hostiles[0])
         if low then return aiStop(msg) end
-        
+
         ai_state = PAI_STATE_FIGHT
     end
-    
+
     activateSustained()
-    
+
     -- Tell us what you're thinking little AI
     game.log(aiStateString())
-        
+
     if ai_state == PAI_STATE_REST then
         local terrain = game.level.map(game.player.x, game.player.y, game.level.map.TERRAIN)
         -- IF WE ARE SUFFOCATING
@@ -296,13 +312,13 @@ local function player_ai_act()
             if path ~= nil then
                 local moved = game.player:move(path[1].x, path[1].y)
             end
-            
+
             if not moved then
                 return aiStop("#RED#AI stopped: Suffocating, no air in sight!")
             end
         end
         return game.player:restInit(nil,nil,nil,nil,validateRest)
-        
+
     elseif ai_state == PAI_STATE_EXPLORE then
         if game.player.air < 75 then
             ai_state = PAI_STATE_REST
@@ -315,7 +331,7 @@ local function player_ai_act()
             aiStop("#GOLD#AI stopping: level change found")
         end
         return
-        
+
     elseif ai_state == PAI_STATE_HUNT then
         if hunt_start ~= nil and aiTurnCount - hunt_start > ai_conf.playerai_hunt_timeout then
             ai_state = PAI_STATE_REST
@@ -345,7 +361,7 @@ local function player_ai_act()
         if dir == nil then
             dir = rng.range(1, 10)
         end
-        
+
         local moved = game.player:attackOrMoveDir(dir)
 
         local offset = 1
@@ -372,7 +388,7 @@ local function player_ai_act()
             game.player:useEnergy()
         end
         return
-    
+
     elseif ai_state == PAI_STATE_FIGHT then
         local targets = {}
         for index, enemy in pairs(hostiles) do
@@ -382,9 +398,9 @@ local function player_ai_act()
                 table.insert(targets, enemy)
             end
         end
-        
+
         local target = getLowestHealthEnemy(targets)
-        
+
         -- the AI is dumb and doesn't understand how powers work, so pick one at random!
         if target ~= nil then
             local talents = getAvailableTalents(target)
@@ -399,7 +415,7 @@ local function player_ai_act()
     		    return
     		end
     	end
-		
+
 		-- no legal target! let's get closer
 		target = getLowestHealthEnemy(hostiles)
 		if target == nil then
@@ -408,12 +424,12 @@ local function player_ai_act()
 		    ai_state = PAI_STATE_REST
 		    return player_ai_act()
 		end
-		
+
 		local a = Astar.new(game.level.map, game.player)
         local path = a:calc(game.player.x, game.player.y, target.x, target.y)
         local dir = getDirNum(game.player, target)
         local moved = false
-        
+
         if not path then
             --game.log("#RED#Path not found, trying beeline")
             moved = game.player:attackOrMoveDir(dir)
@@ -444,7 +460,7 @@ function _M:player_ai_start()
     --dialog = Dialog:simplePopup("AI active!", "The AI is clearing the floor for you. Press any key to regain control...", function()
     --    aiStop()
     --end, false, true)
-    
+
     player_ai_act()
 end
 
