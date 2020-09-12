@@ -266,6 +266,10 @@ local old_onTakeHit = _M.onTakeHit
 function _M:onTakeHit(value, src, death_note)
     ret = old_onTakeHit(self, value, src, death_note)
     if ai_state ~= PAI_STATE_FIGHT then
+        if not config.settings.tome.playerai_use_hunt then
+            aiStop("#LIGHT_RED#Attacked by unseen enemy! AI Stopping!#WHITE#")
+            return ret
+        end
         ai_state = PAI_STATE_HUNT
         hunt_target = src
         hunt_start = ai_turn_count
