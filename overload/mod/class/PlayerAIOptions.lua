@@ -47,7 +47,7 @@ function PlayerAIOptions.createTab(self)
     }
 
     -- health threshold disable
-    local zone = Textzone.new{
+    zone = Textzone.new{
         width=self.c_desc.w, height=self.c_desc.h,
         text=string.toTString"If character health drops below this percentage, the AI will disable itself and notify you that health is low."
     }
@@ -67,7 +67,19 @@ function PlayerAIOptions.createTab(self)
     		))
     	end
     }
-
+    
+    -- use hunt state
+    zone = Textzone.new{
+        width=self.c_desc.w, height=self.c_desc.h,
+        text=string.toTString"Experimental AI state to respond to attacks from unseen enemies. Use at your own risk, the AI often gets itself killed with this still."
+    }
+    list[#list+1] = { zone=zone, name=string.toTString"#GOLD##{bold}#Use experimental HUNT state#WHITE##{normal}#", status=function(item)
+        return tostring(config.settings.tome.playerai_use_hunt  and "enabled" or "disabled")
+    end, fct=function(item)
+        config.settings.tome.playerai_use_hunt = not config.settings.tome.playerai_use_hunt
+        self.c_list:drawItem(item)
+    end,}
+    
     -- health threshold hunt avoid
     zone = Textzone.new{
         width=self.c_desc.w, height=self.c_desc.h,
