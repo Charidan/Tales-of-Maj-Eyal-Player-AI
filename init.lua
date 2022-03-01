@@ -2,12 +2,13 @@ long_name = "Player AI"
 short_name = "player-ai"
 for_module = "tome"
 version = {1,5,10}
-addon_version = {1,6,2}
+addon_version = {1,7,0}
 weight = 100
 author = { "Charidan (twilly0@gmail.com)" }
 description = [[Adds a keybind to activate the new player AI. Set to Alt+F1 by default.
 This player AI rests, auto-explores, and attacks enemies (using most talents when possible).
 It will clear an entire floor or stop when it hits a configurable health threshold (default 25%) in the presence of enemies.
+Configurable rank stop to cancel the AI in the presence of a sufficiently high rank enemy (such as a boss).
 
 This AI has not been tested in the Sandworm Lair; use it there at your own risk.
 
@@ -41,9 +42,11 @@ v1.6.1 PATCH NOTES:
  
 v.1.6.2 PATCH NOTES:
  - Added configuration to disable the Hunt state, since it often is less smart than not having it. Default disabled.
-  
-Stuff I want implemented soon:
- - Smarter "hunting" state.
+
+v1.7.0 PATCH NOTES
+ - Added Rank Stop!
+ - - The AI can be configured to exit if it detects an enemy of certain rank or higher, e.g. bosses.
+ - Fixed a typo preventing Hunt mode from working at all. (Stupid no compiler errors!)
 ]]
 tags = { 'keybind', 'options', 'playerai', 'auto-use', 'quality of life', 'utility' }
 hooks = true

@@ -127,7 +127,7 @@ function PlayerAIOptions.createTab(self)
     -- actor rank to stop on
     zone = Textzone.new{
         width=self.c_desc.w, height=self.c_desc.h,
-        text=string.toTString"AI wil stop on sighting monsters of this rank. 1 = normal, 5 = elite boss, 0 = don't stop"
+        text=string.toTString"AI wil stop on sighting monsters of this rank.\n\n0 = Don't stop (disable this feature)\n10 = Critter\n20 = Normal\n30 = Elite\n32 = Rare\n35 = Unique\n40 = Boss\n50 = Elite Boss\n100 = God\n\nThe savvy player will know that these numbers are 10 times too big. This is because ToME settings do not allow decimals, but ranks 3.2 and 3.5 exist in unmodded ToME."
     }
     list[#list+1] = {
         zone=zone, name=string.toTString"#GOLD##{bold}#Stop on rank#WHITE##{normal}#",
@@ -135,7 +135,7 @@ function PlayerAIOptions.createTab(self)
             return tostring(config.settings.tome.playerai_stop_rank)
 	    end,
 	    fct=function(item)
-    		game:registerDialog(GetQuantity.new("Enter rank to stop on", "rank number 0-5",
+    		game:registerDialog(GetQuantity.new("Enter (decimal) rank to stop on. 10 = normal, 50 = elite boss, 100 = god", "rank number 0-100",
     		    config.settings.tome.playerai_stop_rank, nil,
     		    function(qty)
     			    game:saveSettings("tome.playerai_stop_rank", ("tome.playerai_stop_rank = %d\n"):format(qty))

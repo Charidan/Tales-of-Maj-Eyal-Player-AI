@@ -281,19 +281,35 @@ local function player_ai_act()
     local hostiles = spotHostiles(game.player, true)
     if #hostiles > 0 then
 
-        -- stop the player ai if a boss stronger than n appears!
-
-        -- rank == 1   then rank, color = "critter",    "#C0C0C0#"
-        -- rank == 2   then rank, color = "normal",     "#ANTIQUE_WHITE#"
-        -- rank == 3   then rank, color = "elite",      "#YELLOW#"
-        -- rank == 3.2 then rank, color = "rare",       "#SALMON#"
-        -- rank == 3.5 then rank, color = "unique",     "#SANDY_BROWN#"
-        -- rank == 4   then rank, color = "boss",       "#ORANGE#"
-        -- rank == 5   then rank, color = "elite boss", "#GOLD#"
-        -- rank >= 10  then rank, color = "god",        "#FF4000#"
-
-        for index, enemy in pairs(hostiles) do
-            if (enemy.rank > config.settings.tome.playerai_stop_rank and config.settings.tome.playerai_stop_rank ~= 0) then return aiStop("Non-trash enemy sighted!") end
+        -- stop the player ai if a boss at least as strong as n appears!
+        if config.settings.tome.playerai_stop_rank ~= 0 then
+            -- divide by 10 because settings are inflated due to lack of decimal support
+            local stop_rank = config.settings.tome.playerai_stop_rank / 10.0
+            for index, enemy in pairs(hostiles) do
+                if (enemy.rank >= stop_rank) then
+                    local msg
+                    if (enemy.rank >= 10) then
+                        msg = "#FF4000#God"
+                    elseif (enemy.rank >= 6) then
+                        msg = "#LIGHT_RED#Extremely scary boss"
+                    elseif (enemy.rank >= 5) then
+                        msg = "#GOLD#Elite Boss"
+                    elseif (enemy.rank >= 4) then
+                        msg = "#ORANGE#Boss"
+                    elseif (enemy.rank >= 3.5) then
+                        msg = "#SANDY_BROWN#Unique"
+                    elseif (enemy.rank >= 3.2) then
+                        msg = "#SALMON#Rare"
+                    elseif (enemy.rank >= 3) then
+                        msg = "#YELLOW#Elite"
+                    elseif (enemy.rank >= 2) then
+                        msg = "#ANTIQUE_WHITE#Normal"
+                    elseif (enemy.rank < 2) then
+                        msg = "#C0C0C0#Critter"
+                    end
+                    return aiStop(("%s enemy sighted! #LIGHT_RED#AI Stopping!#WHITE#"):format(msg or "#CYAN#Mysterious"))
+                end
+            end
         end
 
         local low, msg = lowHealth(hostiles[0])
