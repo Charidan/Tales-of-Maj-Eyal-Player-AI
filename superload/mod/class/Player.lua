@@ -325,7 +325,7 @@ local function player_ai_act()
             ai_state = PAI_STATE_REST
             hunt_target = nil
             hunt_start = nil
-            return payer_ai_act()
+            return player_ai_act()
         end
 
         local dir = nil
