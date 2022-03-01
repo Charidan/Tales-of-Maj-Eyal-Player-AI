@@ -20,7 +20,7 @@ local GetQuantity = require "engine.dialogs.GetQuantity"
 class:bindHook("ToME:run",
     function(self, data)
         AISettings.init()
-        
+
     	KeyBind:load("toggle-player-ai")
 	    game.key:addBinds {
 		    TOGGLE_PLAYER_AI = function()
